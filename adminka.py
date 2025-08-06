@@ -65,6 +65,31 @@ def route_cancel(chat_id, prev):
 
 
 
+def show_main_admin_menu(chat_id):
+    """Mostrar el menú principal de administración usando navegación unificada."""
+    quick_actions = []
+    if chat_id == config.admin_id:
+        quick_actions.append(('💬 Respuestas', 'ad_respuestas'))
+    quick_actions.extend([
+        ('📦 Surtido', 'ad_surtido'),
+        ('➕ Producto', 'ad_producto'),
+        ('💰 Pagos', 'ad_pagos'),
+        ('📊 Stats', 'ad_stats'),
+        ('📣 Difusión', 'ad_difusion'),
+        ('Resumen de compradores', 'ad_resumen'),
+        ('📢 Marketing', 'ad_marketing'),
+        ('🏷️ Categorías', 'ad_categorias'),
+        ('💸 Descuentos', 'ad_descuentos'),
+        ('⚙️ Otros', 'ad_otros'),
+    ])
+    key = nav_system.create_universal_navigation(chat_id, 'admin_main', quick_actions)
+    bot.send_message(
+        chat_id,
+        '¡Has ingresado al panel de administración del bot!\nPara salir, presiona /start',
+        reply_markup=key,
+    )
+
+
 def session_expired(chat_id):
     """Informar al usuario que la sesión expiró y volver al menú principal"""
     bot.send_message(chat_id, '❌ La sesión anterior se perdió.')
@@ -390,18 +415,7 @@ def in_adminka(chat_id, message_text, username, name_user):
             if dop.get_sost(chat_id) is True:
                 with shelve.open(files.sost_bd) as bd:
                     del bd[str(chat_id)]
-            user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
-            if chat_id == config.admin_id:
-                user_markup.row('💬 Respuestas')
-            user_markup.row('📦 Surtido', '➕ Producto')
-            user_markup.row('💰 Pagos')
-            user_markup.row('📊 Stats', '📣 Difusión')
-            user_markup.row('Resumen de compradores')
-            user_markup.row('📢 Marketing')
-            user_markup.row('🏷️ Categorías')
-            user_markup.row('💸 Descuentos')
-            user_markup.row('⚙️ Otros')
-            bot.send_message(chat_id, '¡Has ingresado al panel de administración del bot!\nPara salir, presiona /start', reply_markup=user_markup)
+            show_main_admin_menu(chat_id)
 
         elif message_text == '💬 Respuestas':
             if chat_id != config.admin_id:
@@ -3032,25 +3046,31 @@ def text_analytics(message_text, chat_id):
                 show_marketing_menu(chat_id)
 
 
+
+# Registrar acciones del menú principal de administración en el sistema de navegación
+nav_system.register('ad_respuestas', lambda chat_id, store_id: in_adminka(chat_id, '💬 Respuestas', None, None))
+nav_system.register('ad_surtido', lambda chat_id, store_id: in_adminka(chat_id, '📦 Surtido', None, None))
+nav_system.register('ad_producto', lambda chat_id, store_id: in_adminka(chat_id, '➕ Producto', None, None))
+nav_system.register('ad_pagos', lambda chat_id, store_id: in_adminka(chat_id, '💰 Pagos', None, None))
+nav_system.register('ad_stats', lambda chat_id, store_id: in_adminka(chat_id, '📊 Stats', None, None))
+nav_system.register('ad_difusion', lambda chat_id, store_id: in_adminka(chat_id, '📣 Difusión', None, None))
+nav_system.register('ad_resumen', lambda chat_id, store_id: in_adminka(chat_id, 'Resumen de compradores', None, None))
+nav_system.register('ad_marketing', lambda chat_id, store_id: in_adminka(chat_id, '📢 Marketing', None, None))
+nav_system.register('ad_categorias', lambda chat_id, store_id: in_adminka(chat_id, '🏷️ Categorías', None, None))
+nav_system.register('ad_descuentos', lambda chat_id, store_id: in_adminka(chat_id, '💸 Descuentos', None, None))
+nav_system.register('ad_otros', lambda chat_id, store_id: in_adminka(chat_id, '⚙️ Otros', None, None))
+
 def ad_inline(callback_data, chat_id, message_id):
     shop_id = dop.get_shop_id(chat_id)
-    if callback_data.startswith('quick_'):
+    if callback_data in nav_system._actions:
         nav_system.handle(callback_data, chat_id, shop_id)
         return
     if 'Volver al menú principal de administración' == callback_data:
         if dop.get_sost(chat_id) is True:
             with shelve.open(files.sost_bd) as bd:
                 del bd[str(chat_id)]
-        user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
-        if chat_id == config.admin_id:
-            user_markup.row('💬 Respuestas')
-        user_markup.row('📦 Surtido', '➕ Producto')
-        user_markup.row('💰 Pagos')
-        user_markup.row('📊 Stats', '📣 Difusión')
-        user_markup.row('💸 Descuentos')
-        user_markup.row('⚙️ Otros')
         bot.delete_message(chat_id, message_id)
-        bot.send_message(chat_id, '¡Has ingresado al panel de administración del bot!\nPara salir, presiona /start', reply_markup=user_markup)
+        show_main_admin_menu(chat_id)
 
     elif callback_data == 'Volver a Marketing':
         if dop.get_sost(chat_id) is True:

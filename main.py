@@ -298,7 +298,27 @@ def message_send(message):
 
     elif '/adm' == message.text:
         if is_admin:
-            show_main_interface(message.chat.id, user_id)
+            if message.chat.id not in in_admin:
+                in_admin.append(message.chat.id)
+            if role == "superadmin":
+                adminka.show_superadmin_dashboard(message.chat.id, user_id)
+            else:
+                stores = db.get_user_stores(user_id)
+                if len(stores) == 1:
+                    store = stores[0]
+                    dop.set_user_shop(user_id, store["id"])
+                    adminka.show_store_dashboard_unified(
+                        message.chat.id, store["id"], store["name"]
+                    )
+                else:
+                    default_id = dop.get_user_shop(user_id)
+                    store = next((s for s in stores if s["id"] == default_id), None)
+                    if store:
+                        adminka.show_store_dashboard_unified(
+                            message.chat.id, store["id"], store["name"]
+                        )
+                    else:
+                        show_main_interface(message.chat.id, user_id)
         else:
             bot.send_message(message.chat.id, '❌ No tienes permisos')
         return
@@ -472,6 +492,23 @@ def inline(callback):
         if callback.data == 'select_store_main':
             nav_system.handle(
                 'select_store_main', callback.message.chat.id, callback.from_user.id
+            )
+            return
+        elif callback.data.startswith('SHOP_'):
+            shop_id = int(callback.data.replace('SHOP_', ''))
+            dop.set_user_shop(callback.message.chat.id, shop_id)
+            try:
+                con = db.get_db_connection()
+                cur = con.cursor()
+                cur.execute("SELECT name FROM shops WHERE id = ?", (shop_id,))
+                row = cur.fetchone()
+                name = row[0] if row else str(shop_id)
+            except Exception:
+                name = str(shop_id)
+            if callback.message.chat.id not in in_admin:
+                in_admin.append(callback.message.chat.id)
+            adminka.show_store_dashboard_unified(
+                callback.message.chat.id, shop_id, name
             )
             return
         elif callback.message.chat.id in in_admin:
@@ -717,6 +754,8 @@ def inline(callback):
                     callback.message.chat.username,
                     callback.message.from_user.first_name,
                 )
+                if callback.message.chat.id in in_admin:
+                    in_admin.remove(callback.message.chat.id)
 
         elif callback.data == 'Comprar':
             try:
