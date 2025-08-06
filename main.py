@@ -101,6 +101,47 @@ def send_main_menu(chat_id, username, name):
     else:
         bot.send_message(chat_id, '🏠 Inicio', reply_markup=key)
 
+
+MAX_MESSAGE_LENGTH = 4096
+
+
+def _send_long_message(chat_id, text, reply_markup=None):
+    """Send a message ensuring Telegram length limits."""
+    if text is None:
+        return
+    for i in range(0, len(text), MAX_MESSAGE_LENGTH):
+        chunk = text[i : i + MAX_MESSAGE_LENGTH]
+        if i + MAX_MESSAGE_LENGTH >= len(text):
+            bot.send_message(chat_id, chunk, reply_markup=reply_markup)
+        else:
+            bot.send_message(chat_id, chunk)
+
+
+def show_main_interface(chat_id, user_id):
+    """Mostrar la interfaz principal con las tiendas del usuario."""
+    key = telebot.types.InlineKeyboardMarkup()
+    role = db.get_user_role(user_id)
+    if role == "superadmin":
+        key.add(
+            telebot.types.InlineKeyboardButton(
+                text="🌟 TIENDA PRINCIPAL - SuperAdmin",
+                callback_data="SUPERADMIN_MAIN",
+            )
+        )
+
+    stores = db.get_user_stores(user_id)
+    for store in stores:
+        status_emoji = "🟢" if store.get("status") else "🔴"
+        telethon_emoji = "🤖" if store.get("telethon_active") else "⚪"
+        key.add(
+            telebot.types.InlineKeyboardButton(
+                text=f"{store['name']} {status_emoji} {telethon_emoji}",
+                callback_data=f"SHOP_{store['id']}",
+            )
+        )
+
+    _send_long_message(chat_id, "Seleccione una tienda:", reply_markup=key)
+
 def show_shop_selection(chat_id, message=None):
     """Mostrar listado de tiendas disponibles"""
     shops = dop.list_shops()
@@ -203,51 +244,9 @@ def message_send(message):
                 show_product_details(message.chat.id, product, shop_id)
                 dop.user_loger(chat_id=message.chat.id)
                 return
-        if message.chat.username:
-            # Limpiar estado si existe
-            if dop.get_sost(message.chat.id) is True:
-                with shelve.open(files.sost_bd) as bd:
-                    if str(message.chat.id) in bd:
-                        del bd[str(message.chat.id)]
-            
-            if message.chat.id in in_admin:
-                in_admin.remove(message.chat.id)
-            
-            # Verificar si es primera vez
-            is_first_user = dop.it_first(message.chat.id)
-            is_admin_user = (message.chat.id == config.admin_id)
-            admin_list = dop.get_adminlist()
-            is_in_admin_list = (message.chat.id in admin_list)
-            
-            if is_admin_user and is_first_user:
-                in_admin.append(message.chat.id)
-                dop.main(message.chat.id)
-            elif is_first_user and not is_in_admin_list:
-                bot.send_message(
-                    message.chat.id,
-                    '🚧 **¡El bot aún no está listo para funcionar!**\n\n🔧 Si eres el administrador, entra con la cuenta cuyo ID especificaste al iniciar el bot y prepáralo para funcionar!',
-                    parse_mode='Markdown')
-            else:
-                if dop.user_has_shop(message.chat.id):
-                    send_main_menu(
-                        message.chat.id,
-                        message.chat.username,
-                        message.from_user.first_name,
-                    )
-                else:
-                    show_shop_selection(message.chat.id)
-
-            dop.user_loger(chat_id=message.chat.id)
-
-        elif not message.chat.username:
-            if dop.check_message('userfalse'):
-                with shelve.open(files.bot_message_bd) as bd: 
-                    start_message = bd['userfalse']
-                start_message = start_message.replace('uname', message.from_user.first_name)
-                bot.send_message(message.chat.id, start_message, parse_mode='Markdown')
-            else:
-                bot.send_message(message.chat.id, '⚠️ **Para usar el bot necesitas establecer un nombre de usuario en la configuración de Telegram.**\n\n📱 Ve a Configuración → Editar perfil → Nombre de usuario', parse_mode='Markdown')
-            dop.user_loger(chat_id=message.chat.id)
+        show_main_interface(message.chat.id, message.chat.id)
+        dop.user_loger(chat_id=message.chat.id)
+        return
             
     elif '/adm' == message.text:
         admin_list = dop.get_adminlist()
