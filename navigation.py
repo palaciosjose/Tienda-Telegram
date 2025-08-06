@@ -14,6 +14,8 @@ class UnifiedNavigationSystem:
         self._history: dict[int, list[str]] = {}
         # ``_quick_actions`` maps ``chat_id`` to a mapping of ``page`` -> actions.
         self._quick_actions: dict[int, dict[str, list[tuple[str, str]]]] = {}
+        # ``_usage`` counts how many times each action was triggered per page.
+        self._usage: dict[int, dict[str, dict[str, int]]] = {}
 
     def register(self, name, func):
         self._actions[name] = func
@@ -21,6 +23,12 @@ class UnifiedNavigationSystem:
     def handle(self, name, chat_id, store_id):
         action = self._actions.get(name)
         if action:
+            # Record usage for prioritisation purposes.  We assume the last
+            # visited page is the one that triggered the action.
+            page = self._history.get(chat_id, [])[-1:] or [None]
+            if page[0] is not None:
+                usage = self._usage.setdefault(chat_id, {}).setdefault(page[0], {})
+                usage[name] = usage.get(name, 0) + 1
             action(chat_id, store_id)
 
     def create_universal_navigation(self, chat_id, page, quick_actions=None):
@@ -44,6 +52,14 @@ class UnifiedNavigationSystem:
         # Track visited page and actions for history/quick access.
         self._history.setdefault(chat_id, []).append(page)
         self._quick_actions.setdefault(chat_id, {})[page] = list(quick_actions)
+        # Ensure usage counters exist only for current actions.
+        page_usage = {
+            callback: self._usage.get(chat_id, {})
+            .get(page, {})
+            .get(callback, 0)
+            for _, callback in quick_actions
+        }
+        self._usage.setdefault(chat_id, {})[page] = page_usage
 
         import telebot
 
@@ -63,11 +79,16 @@ class UnifiedNavigationSystem:
         pages = self._history.get(chat_id, [])
         if page is None and pages:
             page = pages[-1]
-        return self._quick_actions.get(chat_id, {}).get(page, [])
+        actions = self._quick_actions.get(chat_id, {}).get(page, [])
+        usage = self._usage.get(chat_id, {}).get(page, {})
+        # Sort actions by usage count (descending).  ``sorted`` is stable so
+        # equally used actions keep their original order.
+        return sorted(actions, key=lambda a: usage.get(a[1], 0), reverse=True)
 
     def reset(self, chat_id):
         """Clear stored navigation data for ``chat_id``."""
         self._history.pop(chat_id, None)
         self._quick_actions.pop(chat_id, None)
+        self._usage.pop(chat_id, None)
 
 nav_system = UnifiedNavigationSystem()
