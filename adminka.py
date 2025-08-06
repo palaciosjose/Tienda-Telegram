@@ -2,6 +2,7 @@ import telebot, sqlite3, shelve, os, json, re
 import config, dop, files
 import db
 import telethon_config
+import telethon_manager
 import datetime
 from advertising_system.admin_integration import (
     manager as advertising,
@@ -70,6 +71,36 @@ def session_expired(chat_id):
     in_adminka(chat_id, 'Volver al menú principal', None, None)
 
 
+def show_store_dashboard_unified(chat_id, store_id, store_name):
+    """Mostrar panel unificado de la tienda con estadísticas básicas."""
+    stats = db.get_store_stats(store_id)
+    tele_stats = telethon_manager.get_stats(store_id)
+
+    lines = [
+        f"📊 *Dashboard de {store_name}*",
+        f"Productos: {stats.get('products', 0)}",
+        f"Ventas: {stats.get('purchases', 0)}",
+        f"Telethon: {'Activo' if tele_stats.get('active') else 'Inactivo'}",
+    ]
+    message = "\n".join(lines)
+
+    key = telebot.types.InlineKeyboardMarkup()
+    key.add(
+        telebot.types.InlineKeyboardButton(text="Mi Tienda", callback_data="dash_shop_info"),
+        telebot.types.InlineKeyboardButton(text="Productos", callback_data="dash_products"),
+    )
+    key.add(
+        telebot.types.InlineKeyboardButton(text="Marketing", callback_data="dash_marketing"),
+        telebot.types.InlineKeyboardButton(text="Telethon", callback_data="dash_telethon"),
+    )
+    key.add(
+        telebot.types.InlineKeyboardButton(text="⬅️ Cambiar Tienda", callback_data="dash_change_store"),
+        telebot.types.InlineKeyboardButton(text="🔄 Actualizar", callback_data=f"dash_refresh_{store_id}"),
+    )
+
+    bot.send_message(chat_id, message, reply_markup=key, parse_mode="Markdown")
+
+
 def show_discount_menu(chat_id):
     """Mostrar menú de configuración de descuentos"""
     shop_id = dop.get_shop_id(chat_id)
@@ -99,48 +130,31 @@ def show_discount_menu(chat_id):
 
 
 def show_product_menu(chat_id):
-    """Mostrar listado de productos para la gestión de unidades"""
-    con = db.get_db_connection()
-    cursor = con.cursor()
+    """Mostrar el nuevo dashboard unificado para gestión de productos."""
     shop_id = dop.get_shop_id(chat_id)
-    cursor.execute("SELECT name FROM goods WHERE shop_id = ?;", (shop_id,))
-    user_markup = telebot.types.ReplyKeyboardMarkup(True, True)
-    count = 0
-    for (name,) in cursor.fetchall():
-        count += 1
-        user_markup.row(name)
-    user_markup.row('Volver al menú principal')
-
-    if count == 0:
-        bot.send_message(chat_id, '¡No se ha creado ninguna posición todavía!', reply_markup=user_markup)
-    else:
-        bot.send_message(chat_id, '¿De qué posición desea gestionar unidades?', reply_markup=user_markup, parse_mode='MarkDown')
-        with shelve.open(files.sost_bd) as bd:
-            bd[str(chat_id)] = 10
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        cur.execute("SELECT name FROM shops WHERE id = ?", (shop_id,))
+        row = cur.fetchone()
+        name = row[0] if row else str(shop_id)
+    except Exception:
+        name = str(shop_id)
+    show_store_dashboard_unified(chat_id, shop_id, name)
 
 
 def show_marketing_menu(chat_id):
-    """Mostrar menú principal de marketing"""
-    user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
-    user_markup.row('🎯 Nueva campaña', '📋 Ver campañas')
-    user_markup.row('🛒 Campaña de producto')
-    user_markup.row('🗑️ Eliminar campaña')
-    user_markup.row('⏰ Programar envíos', '📆 Programaciones')
-    user_markup.row('🎯 Gestionar grupos')
-    user_markup.row('📊 Estadísticas hoy', '⚙️ Configuración')
-    user_markup.row('▶️ Envío manual', 'Volver al menú principal')
-
-    today_stats = advertising.get_today_stats()
-    stats_text = (
-        f"📢 **Sistema de Marketing**\n\n"
-        f"📊 **Estadísticas de hoy:**\n"
-        f"- Mensajes enviados: {today_stats['sent']}\n"
-        f"- Tasa de éxito: {today_stats['success_rate']}%\n"
-        f"- Grupos alcanzados: {today_stats['groups']}\n\n"
-        "Selecciona una opción:"
-    )
-
-    bot.send_message(chat_id, stats_text, reply_markup=user_markup, parse_mode='Markdown')
+    """Mostrar el nuevo dashboard unificado para marketing."""
+    shop_id = dop.get_shop_id(chat_id)
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        cur.execute("SELECT name FROM shops WHERE id = ?", (shop_id,))
+        row = cur.fetchone()
+        name = row[0] if row else str(shop_id)
+    except Exception:
+        name = str(shop_id)
+    show_store_dashboard_unified(chat_id, shop_id, name)
 
 
 def show_superadmin_dashboard(chat_id, user_id):
