@@ -181,6 +181,21 @@ def _ensure_unified_logs_table(cur):
     )
 
 
+def _ensure_alerts_table(cur):
+    """Ensure the alerts table exists."""
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            level TEXT,
+            message TEXT,
+            sent INTEGER DEFAULT 0
+        )
+        """
+    )
+
+
 def _ensure_shop_extra_columns(cur):
     """Ensure Telethon and campaign limit fields exist in the shops table."""
 
@@ -386,24 +401,67 @@ def get_global_metrics():
     }
 
 
-def get_alerts(limit=5):
-    """Return recent alert-level entries from unified_logs."""
+def add_alert(level, message):
+    """Insert a new alert into the alerts table."""
     con = get_db_connection()
     cur = con.cursor()
-    _ensure_unified_logs_table(cur)
-    try:
-        cur.execute(
-            "SELECT timestamp, level, message FROM unified_logs "
-            "WHERE level IN ('ERROR','WARNING','ALERT') "
-            "ORDER BY id DESC LIMIT ?",
-            (limit,),
-        )
-        rows = cur.fetchall()
-    except Exception:
-        rows = []
+    _ensure_alerts_table(cur)
+    cur.execute(
+        "INSERT INTO alerts (level, message) VALUES (?, ?)",
+        (level, message),
+    )
+    con.commit()
+
+
+def get_unsent_alerts():
+    """Return alerts that haven't been dispatched yet."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_alerts_table(cur)
+    cur.execute("SELECT id, level, message FROM alerts WHERE sent=0")
+    rows = cur.fetchall()
     return [
-        {"timestamp": r[0], "level": r[1], "message": r[2]} for r in rows
+        {"id": r[0], "level": r[1], "message": r[2]} for r in rows
     ]
+
+
+def get_alerts(limit=5):
+    """Return pending alerts sorted by newest first."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_alerts_table(cur)
+    cur.execute(
+        "SELECT id, timestamp, level, message FROM alerts ORDER BY id DESC LIMIT ?",
+        (limit,),
+    )
+    rows = cur.fetchall()
+    return [
+        {"id": r[0], "timestamp": r[1], "level": r[2], "message": r[3]}
+        for r in rows
+    ]
+
+
+def clear_alerts():
+    """Remove all alerts from the alerts table."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_alerts_table(cur)
+    cur.execute("DELETE FROM alerts")
+    con.commit()
+
+
+def mark_alerts_sent(ids):
+    """Mark alerts as sent based on their identifiers."""
+    if not ids:
+        return
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_alerts_table(cur)
+    cur.execute(
+        f"UPDATE alerts SET sent=1 WHERE id IN ({','.join(['?']*len(ids))})",
+        ids,
+    )
+    con.commit()
 
 
 def set_daily_campaign_limit(shop_id, limit):

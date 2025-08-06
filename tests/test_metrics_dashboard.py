@@ -94,7 +94,8 @@ def test_show_global_metrics_content(monkeypatch):
     assert '📣' in text
 
     markup = dummy.messages[0][2]
-    buttons = [btn for row in markup.keyboard for btn in row if btn.callback_data == 'global_metrics']
-    texts = [b.text for b in buttons]
-    assert texts == ['🔄 Actualizar', '📊 Reportes', '⚠️ Alertas']
+    buttons = [(btn.text, btn.callback_data) for row in markup.keyboard for btn in row]
+    assert ('🔄 Actualizar', 'global_metrics') in buttons
+    assert ('📊 Reportes', 'global_metrics') in buttons
+    assert ('⚠️ Alertas', 'global_alerts') in buttons
     assert events and events[0][0] == 'INFO'
