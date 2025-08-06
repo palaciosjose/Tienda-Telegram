@@ -449,6 +449,7 @@ def inline(callback):
 
         if callback.data == 'select_store_main':
             adminka.show_superadmin_dashboard(callback.message.chat.id, callback.from_user.id)
+            return
 
         elif callback.message.chat.id in in_admin:
             adminka.ad_inline(callback.data, callback.message.chat.id, callback.message.message_id)

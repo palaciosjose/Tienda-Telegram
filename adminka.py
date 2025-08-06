@@ -257,17 +257,31 @@ def show_superadmin_dashboard(chat_id, user_id):
     lines.append(header)
     table = '\n'.join(lines)
 
+    key = telebot.types.InlineKeyboardMarkup()
+    # Asegurar máximo de 3 botones por fila
+    try:
+        key.row_width = 3
+    except Exception:
+        pass
+    key.add(
+        telebot.types.InlineKeyboardButton(
+            text='Ver todas las tiendas', callback_data='admin_list_shops'
+        ),
+        telebot.types.InlineKeyboardButton(
+            text='Crear nueva', callback_data='admin_create_shop'
+        ),
+        telebot.types.InlineKeyboardButton(
+            text='Config Telethon global', callback_data='admin_telethon_config'
+        ),
+    )
+
     MAX = 4096
     for i in range(0, len(table), MAX):
-        bot.send_message(chat_id, table[i:i+MAX])
-
-    key = telebot.types.InlineKeyboardMarkup()
-    key.add(
-        telebot.types.InlineKeyboardButton(text='Ver todas las tiendas', callback_data='admin_list_shops'),
-        telebot.types.InlineKeyboardButton(text='Crear nueva', callback_data='admin_create_shop'),
-        telebot.types.InlineKeyboardButton(text='Config Telethon global', callback_data='admin_telethon_config'),
-    )
-    bot.send_message(chat_id, 'Opciones de gestión:', reply_markup=key)
+        chunk = table[i : i + MAX]
+        if i + MAX >= len(table):
+            bot.send_message(chat_id, chunk, reply_markup=key)
+        else:
+            bot.send_message(chat_id, chunk)
 
 
 def finalize_product_campaign(chat_id, shop_id, product):
