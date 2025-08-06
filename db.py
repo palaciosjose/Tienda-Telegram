@@ -276,6 +276,83 @@ def get_store_topics(store_id):
     ]
 
 
+def get_global_metrics():
+    """Return aggregated metrics across all shops.
+
+    The metrics include a simple ROI based on total revenue, a ranking of
+    shops by revenue and the global Telethon activation status.
+    """
+    con = get_db_connection()
+    cur = con.cursor()
+
+    # Total revenue across all purchases
+    try:
+        cur.execute("SELECT COALESCE(SUM(price),0) FROM purchases")
+        revenue = cur.fetchone()[0] or 0
+    except Exception:
+        revenue = 0
+
+    # Telethon activation stats
+    try:
+        cur.execute(
+            "SELECT COUNT(*), SUM(CASE WHEN is_active=1 THEN 1 ELSE 0 END) "
+            "FROM platform_config WHERE platform='telethon'"
+        )
+        total, active = cur.fetchone()
+        total = total or 0
+        active = active or 0
+    except Exception:
+        total = 0
+        active = 0
+
+    # Ranking of shops by revenue
+    ranking = []
+    try:
+        cur.execute(
+            "SELECT shop_id, COALESCE(SUM(price),0) AS total "
+            "FROM purchases GROUP BY shop_id ORDER BY total DESC LIMIT 5"
+        )
+        rows = cur.fetchall()
+        for sid, total_rev in rows:
+            try:
+                cur.execute("SELECT name FROM shops WHERE id=?", (sid,))
+                name_row = cur.fetchone()
+                name = name_row[0] if name_row else str(sid)
+            except Exception:
+                name = str(sid)
+            ranking.append({"shop_id": sid, "name": name, "total": total_rev})
+    except Exception:
+        ranking = []
+
+    return {
+        "roi": revenue,
+        "revenue": revenue,
+        "ranking": ranking,
+        "telethon_active": active,
+        "telethon_total": total,
+    }
+
+
+def get_alerts(limit=5):
+    """Return recent alert-level entries from unified_logs."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_unified_logs_table(cur)
+    try:
+        cur.execute(
+            "SELECT timestamp, level, message FROM unified_logs "
+            "WHERE level IN ('ERROR','WARNING','ALERT') "
+            "ORDER BY id DESC LIMIT ?",
+            (limit,),
+        )
+        rows = cur.fetchall()
+    except Exception:
+        rows = []
+    return [
+        {"timestamp": r[0], "level": r[1], "message": r[2]} for r in rows
+    ]
+
+
 def set_daily_campaign_limit(shop_id, limit):
     """Set the maximum number of campaigns per day for a shop."""
     con = get_db_connection()
