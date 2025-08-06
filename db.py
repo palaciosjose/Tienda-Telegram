@@ -204,10 +204,11 @@ def _ensure_shop_extra_columns(cur):
 
 
 def get_global_telethon_status():
-    """Return all key/value pairs from the global configuration table.
+    """Return a mapping with all global Telethon settings.
 
-    The table is created on demand if it does not already exist. All
-    values are returned as strings for simplicity.
+    The configuration table is created on demand so callers can use this
+    function without worrying about migrations.  Every value is returned as a
+    string to keep the API simple.
     """
 
     con = get_db_connection()
@@ -218,15 +219,10 @@ def get_global_telethon_status():
 
 
 def update_global_limit(key, value):
-    """Update a limit value in the global configuration table.
+    """Persist a global Telethon limit value.
 
-    Parameters
-    ----------
-    key: str
-        Name of the configuration option to update.
-    value: Any
-        New value to store. It will be converted to a string before
-        persisting in the database.
+    This helper performs an UPSERT so it can be used for both initial
+    creation and subsequent updates.
     """
 
     con = get_db_connection()
