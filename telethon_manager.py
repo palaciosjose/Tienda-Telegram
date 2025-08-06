@@ -40,15 +40,17 @@ def get_stats(shop_id):
     return stats
 
 
-def detect_topics(shop_id):
+def detect_topics(shop_id, progress_callback=lambda msg: None):
     """Detect topics for a shop using Telethon and store the results.
 
     The function connects with a :class:`TelegramClient` and iterates over the
     dialogs looking for groups that expose forum topics. Each detected topic is
     saved via :func:`db.save_detected_topics` and a textual summary is returned.
+    Progress updates are emitted through ``progress_callback``.
     """
 
     if TelegramClient is None:
+        progress_callback("Telethon no disponible")
         return "Telethon no disponible"
 
     topics = []
@@ -56,8 +58,12 @@ def detect_topics(shop_id):
 
     client = TelegramClient(f"store_{shop_id}", 0, "0")
     try:
+        progress_callback("Conectando con Telegram...")
         client.connect()
-        for dialog in client.iter_dialogs():
+        dialogs = list(client.iter_dialogs())
+        total = len(dialogs) or 1
+        for idx, dialog in enumerate(dialogs, 1):
+            progress_callback(f"Procesando {idx}/{total}")
             entity = getattr(dialog, "entity", None)
             if entity is None:
                 continue
@@ -94,6 +100,7 @@ def detect_topics(shop_id):
             pass
 
     db.save_detected_topics(shop_id, topics)
+    progress_callback("Detección finalizada")
     return "\n".join(summary_lines) if summary_lines else "No se detectaron topics"
 
 

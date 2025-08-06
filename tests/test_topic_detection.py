@@ -57,9 +57,12 @@ def test_detect_topics_saves_and_returns_summary(tmp_path, monkeypatch):
     monkeypatch.setattr(telethon_manager, "TelegramClient", DummyClient)
     monkeypatch.setattr(telethon_manager, "GetForumTopicsRequest", DummyRequest)
 
-    summary = telethon_manager.detect_topics(5)
+    progress = []
+    summary = telethon_manager.detect_topics(5, progress_callback=progress.append)
     assert "G1 (1): T1 (10)" in summary
     assert "G2 (2): T2 (20)" in summary
+    assert any("Procesando" in m for m in progress)
+    assert progress[-1] == "Detección finalizada"
 
     con = db.get_db_connection()
     cur = con.cursor()
@@ -97,4 +100,53 @@ def test_route_callback_start_auto_detection(monkeypatch):
     smb.route_callback("start_auto_detection_7_all", 99)
 
     assert msgs == ["[#####-----] 50%", "Configuración confirmada"]
+
+
+def test_route_callback_detect_topics(monkeypatch):
+    msgs = []
+    markups = []
+
+    class DummyBot:
+        def send_message(self, chat_id, text, reply_markup=None, **kw):
+            msgs.append(text)
+            markups.append(reply_markup)
+
+    class Button:
+        def __init__(self, text, callback_data=None):
+            self.text = text
+            self.callback_data = callback_data
+
+    class Markup:
+        def __init__(self):
+            self.keyboard = []
+
+        def add(self, *buttons):
+            self.keyboard.append(list(buttons))
+
+    telebot_stub = types.SimpleNamespace(
+        types=types.SimpleNamespace(
+            InlineKeyboardMarkup=Markup,
+            InlineKeyboardButton=Button,
+        )
+    )
+    monkeypatch.setitem(sys.modules, "telebot", telebot_stub)
+    monkeypatch.setitem(sys.modules, "bot_instance", types.SimpleNamespace(bot=None))
+    import importlib
+    sys.modules.pop("streaming_manager_bot", None)
+    streaming_module = importlib.import_module("streaming_manager_bot")
+
+    def fake_send(bot, chat_id, text, markup=None, parse_mode=None):
+        msgs.append(text)
+        markups.append(markup)
+
+    monkeypatch.setattr(streaming_module, "send_long_message", fake_send)
+    monkeypatch.setattr(telethon_manager, "detect_topics", lambda s: "resumen")
+
+    smb = streaming_module.StreamingManagerBot(DummyBot())
+    smb.route_callback("telethon_detect_5", 99)
+
+    assert msgs == ["resumen"]
+    buttons = [b.text for row in markups[0].keyboard for b in row]
+    assert "Seleccionar todos" in buttons
+    assert "Personalizar" in buttons
 
