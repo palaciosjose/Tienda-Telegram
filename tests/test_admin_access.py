@@ -1,10 +1,14 @@
 from tests.test_shop_info import setup_main
 import types
+import os
+import config
 
 
 def test_adm_command_requires_permissions(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
+    config.admin_id = 1
+    os.environ["TELEGRAM_ADMIN_ID"] = "1"
     monkeypatch.setattr(dop, "get_adminlist", lambda: [1])
 
     class Msg:
@@ -67,3 +71,69 @@ def test_admin_panel_button_dispatch(monkeypatch, tmp_path):
     main.message_send(Msg())
 
     assert called.get('args') == (1, '⚙️ Configuración', 'admin', 'Admin')
+
+
+def test_superadmin_dashboard_access(monkeypatch, tmp_path):
+    import sys
+    sys.modules.pop('adminka', None)
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    config.admin_id = 1
+    os.environ["TELEGRAM_ADMIN_ID"] = "1"
+
+    class Msg:
+        def __init__(self):
+            self.chat = types.SimpleNamespace(id=5)
+            self.message_id = 1
+            self.content_type = 'text'
+            self.from_user = types.SimpleNamespace(first_name='n')
+
+    cb = types.SimpleNamespace(
+        data='select_store_main',
+        message=Msg(),
+        id='1',
+        from_user=types.SimpleNamespace(id=1),
+    )
+    main.inline(cb)
+    messages = []
+    for c in calls:
+        if c[0] == 'send_message':
+            if len(c[1]) > 1:
+                messages.append(c[1][1])
+            else:
+                messages.append(c[2].get('text', ''))
+
+    assert any('+----+' in m for m in messages)
+
+
+def test_superadmin_dashboard_denied(monkeypatch, tmp_path):
+    import sys
+    sys.modules.pop('adminka', None)
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    config.admin_id = 1
+    os.environ["TELEGRAM_ADMIN_ID"] = "1"
+
+    class Msg:
+        def __init__(self):
+            self.chat = types.SimpleNamespace(id=6)
+            self.message_id = 1
+            self.content_type = 'text'
+            self.from_user = types.SimpleNamespace(first_name='n')
+
+    cb = types.SimpleNamespace(
+        data='select_store_main',
+        message=Msg(),
+        id='1',
+        from_user=types.SimpleNamespace(id=2),
+    )
+    main.inline(cb)
+    messages = []
+    for c in calls:
+        if c[0] == 'send_message':
+            if len(c[1]) > 1:
+                messages.append(c[1][1])
+            else:
+                messages.append(c[2].get('text', ''))
+
+    assert any('Acceso restringido' in m for m in messages)
