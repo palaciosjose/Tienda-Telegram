@@ -1,34 +1,58 @@
-import types, os
+import types
 from tests.test_shop_info import setup_main
 
-
-def test_start_message_with_media(monkeypatch, tmp_path):
+def test_client_gets_main_menu(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
-
-    import files
-    os.makedirs(tmp_path / "data" / "bd", exist_ok=True)
-    monkeypatch.setattr(files, "bot_message_bd", str(tmp_path / "bot.bd"))
-    monkeypatch.setattr(files, "sost_bd", str(tmp_path / "sost.bd"))
+    sid = dop.create_shop("S1", admin_id=1)
+    dop.set_user_shop(5, sid)
 
     monkeypatch.setattr(dop, "get_adminlist", lambda: [1])
-    monkeypatch.setattr(main.adminka.dop, "get_adminlist", lambda: [1])
+    monkeypatch.setattr(dop, "get_sost", lambda cid: False)
+    monkeypatch.setattr(dop, "user_loger", lambda chat_id=0: None)
 
-    keyboard_stub = lambda *a, **k: types.SimpleNamespace(row=lambda *b, **c: None)
-    monkeypatch.setattr(main.telebot.types, "ReplyKeyboardMarkup", keyboard_stub, raising=False)
-    monkeypatch.setattr(main.adminka.telebot.types, "ReplyKeyboardMarkup", keyboard_stub, raising=False)
+    called = {}
 
-    os.makedirs("data/Temp", exist_ok=True)
+    def fake_send(chat_id, username, name):
+        called["args"] = (chat_id, username, name)
 
-    saved = {}
-    orig_save = dop.save_message
+    monkeypatch.setattr(main, "send_main_menu", fake_send)
 
-    def fake_save(msg_type, text, file_id=None, media_type=None):
-        saved["args"] = (msg_type, text, file_id, media_type)
-        return orig_save(msg_type, text, file_id=file_id, media_type=media_type)
+    class Msg:
+        def __init__(self):
+            self.text = "/start"
+            self.chat = types.SimpleNamespace(id=5, username="u")
+            self.from_user = types.SimpleNamespace(first_name="N")
+            self.content_type = "text"
 
-    monkeypatch.setattr(dop, "save_message", fake_save)
-    monkeypatch.setattr(main.adminka.dop, "save_message", fake_save)
+    main.message_send(Msg())
+
+    assert called.get("args") == (5, "u", "N")
+
+
+def test_admin_selector_only_on_adm(monkeypatch, tmp_path):
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    sid = dop.create_shop("S1", admin_id=1)
+    dop.set_user_shop(1, sid)
+
+    monkeypatch.setattr(dop, "get_adminlist", lambda: [1])
+    monkeypatch.setattr(dop, "get_sost", lambda cid: False)
+    monkeypatch.setattr(dop, "user_loger", lambda chat_id=0: None)
+
+    sent_menu = {}
+
+    def fake_send(chat_id, username, name):
+        sent_menu["args"] = (chat_id, username, name)
+
+    monkeypatch.setattr(main, "send_main_menu", fake_send)
+
+    selector = {}
+
+    def fake_selector(cid, uid):
+        selector["args"] = (cid, uid)
+
+    monkeypatch.setattr(main, "show_main_interface", fake_selector)
 
     class Msg:
         def __init__(self, text):
@@ -37,38 +61,48 @@ def test_start_message_with_media(monkeypatch, tmp_path):
             self.from_user = types.SimpleNamespace(first_name="Admin")
             self.content_type = "text"
 
+    main.message_send(Msg("/start"))
+    assert sent_menu.get("args") == (1, "admin", "Admin")
+
+    sent_menu.clear()
     main.message_send(Msg("/adm"))
-    main.message_send(Msg("Cambiar mensaje de inicio (/start)"))
-    main.message_send(Msg("Bienvenido username"))
+    assert selector.get("args") == (1, 1)
+    assert not sent_menu
 
-    class Photo:
+
+def test_new_user_start_shows_selector(monkeypatch, tmp_path):
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    dop.create_shop("S1", admin_id=1)
+
+    monkeypatch.setattr(dop, "get_adminlist", lambda: [1])
+    monkeypatch.setattr(dop, "get_sost", lambda cid: False)
+    monkeypatch.setattr(dop, "user_loger", lambda chat_id=0: None)
+
+    called = {}
+
+    def fake_select(chat_id, message=None):
+        called["args"] = (chat_id, message)
+
+    monkeypatch.setattr(main, "show_shop_selection", fake_select)
+
+    class Msg:
         def __init__(self):
-            self.chat = types.SimpleNamespace(id=1)
-            self.photo = [types.SimpleNamespace(file_id="fid")]
-            self.video = None
-            self.document = None
-            self.audio = None
-            self.animation = None
-            self.caption = None
-            self.content_type = "photo"
+            self.text = "/start"
+            self.chat = types.SimpleNamespace(id=5, username="u")
+            self.from_user = types.SimpleNamespace(first_name="N")
+            self.content_type = "text"
 
-    main.handle_media_files(Photo())
+    main.message_send(Msg())
 
-    assert saved.get("args") == ("start", "Bienvenido username", "fid", "photo")
-
-    calls.clear()
-    main.send_main_menu(5, "user", "User")
-    photo_calls = [c for c in calls if c[0] == "send_photo"]
-    assert photo_calls
-    args = photo_calls[-1][1]
-    kwargs = photo_calls[-1][2]
-    assert args[0] == 5 and args[1] == "fid"
-    assert kwargs["caption"] == "Bienvenido user"
+    assert called.get("args")[0] == 5
 
 
 def test_interface_superadmin(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
+
+    monkeypatch.setattr(main.db, "get_user_role", lambda uid: "superadmin")
 
     import files, sqlite3
     conn = sqlite3.connect(files.main_db)

@@ -2,7 +2,7 @@ import types
 from tests.test_shop_info import setup_main
 
 
-def test_start_calls_interface_existing_user(monkeypatch, tmp_path):
+def test_start_sends_main_menu_existing_user(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
 
@@ -15,10 +15,10 @@ def test_start_calls_interface_existing_user(monkeypatch, tmp_path):
 
     called = {}
 
-    def fake_interface(cid, uid):
-        called["args"] = (cid, uid)
+    def fake_menu(cid, username, name):
+        called["args"] = (cid, username, name)
 
-    monkeypatch.setattr(main, "show_main_interface", fake_interface)
+    monkeypatch.setattr(main, "send_main_menu", fake_menu)
 
     class Msg:
         def __init__(self):
@@ -29,10 +29,10 @@ def test_start_calls_interface_existing_user(monkeypatch, tmp_path):
 
     main.message_send(Msg())
 
-    assert called.get("args") == (5, 5)
+    assert called.get("args") == (5, "u", "N")
 
 
-def test_start_calls_interface_new_user(monkeypatch, tmp_path):
+def test_start_shows_selection_new_user(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
 
@@ -44,10 +44,10 @@ def test_start_calls_interface_new_user(monkeypatch, tmp_path):
 
     called = []
 
-    def fake_interface(cid, uid):
-        called.append((cid, uid))
+    def fake_select(cid, message=None):
+        called.append((cid, message))
 
-    monkeypatch.setattr(main, "show_main_interface", fake_interface)
+    monkeypatch.setattr(main, "show_shop_selection", fake_select)
 
     class Msg:
         def __init__(self):
@@ -58,7 +58,7 @@ def test_start_calls_interface_new_user(monkeypatch, tmp_path):
 
     main.message_send(Msg())
 
-    assert called == [(5, 5)]
+    assert called == [(5, None)]
 
 
 def test_start_multiple_calls(monkeypatch, tmp_path):
@@ -74,10 +74,10 @@ def test_start_multiple_calls(monkeypatch, tmp_path):
 
     called = []
 
-    def fake_interface(cid, uid):
-        called.append((cid, uid))
+    def fake_select(cid, message=None):
+        called.append((cid, message))
 
-    monkeypatch.setattr(main, "show_main_interface", fake_interface)
+    monkeypatch.setattr(main, "show_shop_selection", fake_select)
 
     class Msg:
         def __init__(self):
@@ -89,6 +89,6 @@ def test_start_multiple_calls(monkeypatch, tmp_path):
     main.message_send(Msg())
     main.message_send(Msg())
 
-    assert called == [(5, 5), (5, 5)]
+    assert called == [(5, None), (5, None)]
     assert not dop.user_has_shop(5)
 

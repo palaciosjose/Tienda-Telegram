@@ -251,6 +251,12 @@ in_admin = []
 @bot.message_handler(content_types=["text"])
 def message_send(message):
     """Route incoming text messages to the appropriate handlers."""
+    user_id = message.chat.id
+    role = db.get_user_role(user_id)
+    admin_list = dop.get_adminlist()
+    is_admin = user_id in admin_list or role == "superadmin"
+    has_shop = dop.user_has_shop(user_id)
+
     first_word = ""
     if isinstance(message.text, str):
         stripped = message.text.strip()
@@ -278,39 +284,24 @@ def message_send(message):
                 show_product_details(message.chat.id, product, shop_id)
                 dop.user_loger(chat_id=message.chat.id)
                 return
-        show_main_interface(message.chat.id, message.chat.id)
-        dop.user_loger(chat_id=message.chat.id)
-        return
-            
-    elif '/adm' == message.text:
-        admin_list = dop.get_adminlist()
-        logging.debug("Current admin_list: %s", admin_list)
 
-        # Limpiar IDs que ya no son administradores
-        for uid in list(in_admin):
-            if uid not in admin_list:
-                in_admin.remove(uid)
-                logging.debug("Removed %s from in_admin", uid)
-
-        authorized = message.chat.id in admin_list
-        logging.debug(
-            "User %s requested admin mode. Authorized=%s",
-            message.chat.id,
-            authorized,
-        )
-
-        if authorized:
-            if message.chat.id not in in_admin:
-                in_admin.append(message.chat.id)
-                logging.debug("Added %s to in_admin", message.chat.id)
-            adminka.in_adminka(
+        if has_shop:
+            send_main_menu(
                 message.chat.id,
-                message.text,
                 message.chat.username,
                 message.from_user.first_name,
             )
         else:
-            bot.send_message(message.chat.id, '❌ No tienes permisos de administrador')
+            show_shop_selection(message.chat.id)
+        dop.user_loger(chat_id=message.chat.id)
+        return
+
+    elif '/adm' == message.text:
+        if is_admin:
+            show_main_interface(message.chat.id, user_id)
+        else:
+            bot.send_message(message.chat.id, '❌ No tienes permisos')
+        return
 
     elif first_word and first_word in (
         '/report',

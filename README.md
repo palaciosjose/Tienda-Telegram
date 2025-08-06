@@ -159,14 +159,19 @@ el bot y crea una tarea `cron` para ejecutar regularmente
 dominio cuenta con certificado HTTPS, define `WEBHOOK_SSL_CERT` y
 `WEBHOOK_SSL_PRIV` en `.env` para usarlo en la conexión segura.
 
-El bot mostrará mensajes de depuración y podrás configurarlo enviando `/start` desde la cuenta de administrador.  Para
-ver mensajes más detallados establece la variable de entorno `LOGLEVEL` a `DEBUG` al ejecutarlo:
+El bot mostrará mensajes de depuración y podrás interactuar con él enviando `/start`.
+
+* Si ya tienes una tienda asignada, recibirás el menú principal de esa tienda.
+* Si eres un usuario nuevo sin tienda seleccionada, se mostrará un selector para elegirla.
+* Los administradores y superadministradores también verán el menú de su tienda por defecto; para cambiar de tienda o acceder a las opciones de administración deben utilizar `/adm`.
+
+Para ver mensajes más detallados establece la variable de entorno `LOGLEVEL` a `DEBUG` al ejecutarlo:
 
 ```bash
 LOGLEVEL=DEBUG python main.py
 ```
 
-Tras ello, los administradores deben escribir `/adm` para abrir el panel de administración. El comando solo está disponible para los IDs indicados en `TELEGRAM_ADMIN_ID` o en `data/lists/admins_list.txt`.
+Tras ello, los administradores pueden escribir `/adm` para abrir el selector de tiendas y las opciones de administración. El comando solo está disponible para los IDs indicados en `TELEGRAM_ADMIN_ID` o en `data/lists/admins_list.txt`. Los usuarios sin permisos recibirán “No tienes permisos”.
 
 Desde ese menú también podrás pulsar **"Mis compras"** para revisar un resumen de todos los productos que hayas adquirido.
 
