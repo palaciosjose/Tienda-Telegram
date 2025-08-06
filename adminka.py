@@ -75,9 +75,10 @@ def session_expired(chat_id):
 def show_store_dashboard_unified(chat_id, store_id, store_name):
     """Mostrar panel unificado de la tienda con estadísticas básicas.
 
-    Se muestran datos generales de la tienda y el estado de Telethon. Las
-    estadísticas se obtienen de :mod:`db` y :mod:`telethon_manager` para que
-    las pruebas puedan verificarlas fácilmente.
+    Combina estadísticas de la tienda y del subsistema Telethon en un solo
+    mensaje. La información proviene de :func:`db.get_store_stats` y
+    :func:`telethon_manager.get_stats`, lo que facilita su comprobación en las
+    pruebas automatizadas.
     """
 
     stats = db.get_store_stats(store_id)
@@ -88,12 +89,14 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
     lines = [f"📊 *Dashboard de {store_name}*"]
     lines.append(f"Productos: {stats.get('products', 0)}")
     lines.append(f"Ventas: {stats.get('purchases', 0)}")
-    if 'revenue' in stats:
+    if "revenue" in stats:
         lines.append(f"Ingresos: ${stats.get('revenue', 0)}")
-    tele_state = 'Activo' if tele_stats.get('active') else 'Inactivo'
+
+    tele_state = "Activo" if tele_stats.get("active") else "Inactivo"
     lines.append(f"Telethon: {tele_state}")
-    if tele_stats.get('sent'):
-        lines.append(f"Envíos Telethon: {tele_stats.get('sent', 0)}")
+    sent = tele_stats.get("sent", 0)
+    if sent:
+        lines.append(f"Envíos Telethon: {sent}")
 
     message = "\n".join(lines)
 
