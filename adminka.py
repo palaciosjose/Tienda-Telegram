@@ -142,6 +142,67 @@ def show_marketing_menu(chat_id):
     bot.send_message(chat_id, stats_text, reply_markup=user_markup, parse_mode='Markdown')
 
 
+def show_superadmin_dashboard(chat_id, user_id):
+    """Mostrar panel principal del super admin con información de tiendas."""
+    if user_id != config.admin_id:
+        bot.send_message(chat_id, '❌ Acceso restringido.')
+        return
+
+    con = db.get_db_connection()
+    cur = con.cursor()
+    try:
+        cur.execute('SELECT id, name FROM shops ORDER BY id')
+        shops = cur.fetchall()
+    except Exception:
+        shops = []
+
+    header = '+----+--------------------+----------+--------------+'
+    lines = [
+        header,
+        '| ID | Tienda             | Telethon | Ventas (u/$) |',
+        header,
+    ]
+    for sid, name in shops:
+        try:
+            cur.execute(
+                "SELECT is_active FROM platform_config WHERE platform='telethon' AND shop_id=?",
+                (sid,),
+            )
+            row = cur.fetchone()
+            tele_active = bool(row[0]) if row else False
+        except Exception:
+            tele_active = False
+        tele_txt = '✅' if tele_active else '❌'
+
+        try:
+            cur.execute(
+                "SELECT COUNT(*), COALESCE(SUM(price),0) FROM purchases WHERE shop_id=?",
+                (sid,),
+            )
+            count, total = cur.fetchone()
+        except Exception:
+            count, total = 0, 0
+
+        lines.append(
+            f"| {sid:<2} | {name:<18} | {tele_txt:^8} | {count:>3}/{total or 0:<7} |"
+        )
+
+    lines.append(header)
+    table = '\n'.join(lines)
+
+    MAX = 4096
+    for i in range(0, len(table), MAX):
+        bot.send_message(chat_id, table[i:i+MAX])
+
+    key = telebot.types.InlineKeyboardMarkup()
+    key.add(
+        telebot.types.InlineKeyboardButton(text='Ver todas las tiendas', callback_data='admin_list_shops'),
+        telebot.types.InlineKeyboardButton(text='Crear nueva', callback_data='admin_create_shop'),
+        telebot.types.InlineKeyboardButton(text='Config Telethon global', callback_data='admin_telethon_config'),
+    )
+    bot.send_message(chat_id, 'Opciones de gestión:', reply_markup=key)
+
+
 def finalize_product_campaign(chat_id, shop_id, product):
     """Crear campaña de producto usando la información almacenada."""
     info = dop.get_product_full_info(product, shop_id)

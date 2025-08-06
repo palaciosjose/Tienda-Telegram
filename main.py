@@ -125,7 +125,7 @@ def show_main_interface(chat_id, user_id):
         key.add(
             telebot.types.InlineKeyboardButton(
                 text="🌟 TIENDA PRINCIPAL - SuperAdmin",
-                callback_data="SUPERADMIN_MAIN",
+                callback_data="select_store_main",
             )
         )
 
@@ -434,7 +434,10 @@ def inline(callback):
                                      text='📱 Envía una captura de pantalla del comprobante de pago como imagen al chat')
             return
         
-        if callback.message.chat.id in in_admin:
+        if callback.data == 'select_store_main':
+            adminka.show_superadmin_dashboard(callback.message.chat.id, callback.from_user.id)
+
+        elif callback.message.chat.id in in_admin:
             adminka.ad_inline(callback.data, callback.message.chat.id, callback.message.message_id)
 
         elif callback.data.startswith('SELECT_SHOP_'):
