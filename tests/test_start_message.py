@@ -64,3 +64,55 @@ def test_start_message_with_media(monkeypatch, tmp_path):
     kwargs = photo_calls[-1][2]
     assert args[0] == 5 and args[1] == "fid"
     assert kwargs["caption"] == "Bienvenido user"
+
+
+def test_interface_superadmin(monkeypatch, tmp_path):
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+
+    import files, sqlite3
+    conn = sqlite3.connect(files.main_db)
+    cur = conn.cursor()
+    cur.execute(
+        "CREATE TABLE platform_config (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, config_data TEXT, is_active INTEGER, last_updated TEXT, shop_id INTEGER)"
+    )
+    sid = dop.create_shop("S1", admin_id=1)
+    cur.execute(
+        "INSERT INTO platform_config (platform, is_active, shop_id) VALUES ('telethon', 0, ?)",
+        (sid,),
+    )
+    conn.commit()
+    conn.close()
+
+    calls.clear()
+    main.show_main_interface(1, 1)
+    markup = calls[-1][2]["reply_markup"]
+    texts = [b.text for b in markup.buttons]
+    assert "🌟 TIENDA PRINCIPAL - SuperAdmin" in texts
+    assert any("S1" in t and "⚪" in t for t in texts)
+
+
+def test_interface_regular_user(monkeypatch, tmp_path):
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+
+    import files, sqlite3
+    conn = sqlite3.connect(files.main_db)
+    cur = conn.cursor()
+    cur.execute(
+        "CREATE TABLE platform_config (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, config_data TEXT, is_active INTEGER, last_updated TEXT, shop_id INTEGER)"
+    )
+    sid = dop.create_shop("S2", admin_id=2)
+    cur.execute(
+        "INSERT INTO platform_config (platform, is_active, shop_id) VALUES ('telethon', 1, ?)",
+        (sid,),
+    )
+    conn.commit()
+    conn.close()
+
+    calls.clear()
+    main.show_main_interface(2, 2)
+    markup = calls[-1][2]["reply_markup"]
+    texts = [b.text for b in markup.buttons]
+    assert "🌟 TIENDA PRINCIPAL - SuperAdmin" not in texts
+    assert any("S2" in t and "🤖" in t for t in texts)
