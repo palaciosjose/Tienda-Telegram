@@ -469,6 +469,9 @@ def inline(callback):
             return
         
         if callback.data == 'GLOBAL_CANCEL':
+            # Clear navigation history to avoid stale breadcrumbs when the
+            # user aborts an operation and returns to the main menu.
+            nav_system.reset(callback.message.chat.id)
             send_main_menu(
                 callback.message.chat.id,
                 getattr(callback.from_user, 'username', ''),

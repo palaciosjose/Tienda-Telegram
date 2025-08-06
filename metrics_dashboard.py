@@ -5,7 +5,12 @@ from utils.message_chunker import send_long_message
 
 
 def show_global_metrics(chat_id, user_id):
-    """Display global ROI, ranking, alerts and Telethon state."""
+    """Display global ROI, ranking, alerts and Telethon state.
+
+    The returned message uses :func:`nav_system.create_universal_navigation` to
+    append the standard navigation buttons ("🏠 Inicio" and "❌ Cancelar") along
+    with a few quick actions specific to this dashboard.
+    """
     if db.get_user_role(user_id) != 'superadmin':
         # Ensure even short warnings go through the chunker for
         # consistent behaviour across the codebase.

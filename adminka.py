@@ -398,7 +398,7 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif 'mensaje después de pagar el producto' in message_text:
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, '¡Ingrese un nuevo mensaje que el bot enviará al usuario después de la compra! En el texto puede usar las palabras `username` y `name`. Se reemplazarán automáticamente por el nombre de usuario', parse_mode='MarkDown', reply_markup=key)
             with open('data/Temp/' + str(chat_id) + '.txt', 'w', encoding='utf-8') as f:
                 f.write('after_buy')
@@ -407,7 +407,7 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif 'respuesta al comando help' in message_text:
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, '¡Ingrese un nuevo mensaje de ayuda! En principio, puede poner cualquier cosa allí. En el texto puede usar las palabras `username` y `name`. Se reemplazarán automáticamente por el nombre de usuario', parse_mode='MarkDown', reply_markup=key)
             with open('data/Temp/' + str(chat_id) + '.txt', 'w', encoding='utf-8') as f:
                 f.write('help')
@@ -416,7 +416,7 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif 'mensaje si no hay nombre de usuario' in message_text:
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, '¡Ingrese un nuevo mensaje que se enviará si el usuario no tiene `username`! En el texto puede usar `uname`. Se reemplazará automáticamente por el nombre de usuario', parse_mode='MarkDown', reply_markup=key)
             with open('data/Temp/' + str(chat_id) + '.txt', 'w', encoding='utf-8') as f:
                 f.write('userfalse')
@@ -425,7 +425,7 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif 'mensaje de entrega manual' in message_text:
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Ingrese el mensaje que recibirá el comprador para productos de entrega manual. Puede usar `username` y `name`.', parse_mode='MarkDown', reply_markup=key)
             with open('data/Temp/' + str(chat_id) + '.txt', 'w', encoding='utf-8') as f:
                 f.write('manual_delivery')
@@ -474,7 +474,7 @@ def in_adminka(chat_id, message_text, username, name_user):
             )
             key.add(
                 telebot.types.InlineKeyboardButton(
-                    text='Cancelar y volver al menú principal de administración',
+                    text='❌ Cancelar y volver al menú principal de administración',
                     callback_data='Volver al menú principal de administración'
                 )
             )
@@ -707,14 +707,14 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif 'PayPal' in message_text:
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Ingrese el Client ID de PayPal:', reply_markup=key)
             with shelve.open(files.sost_bd) as bd: 
                 bd[str(chat_id)] = 18
 
         elif 'Binance' in message_text:
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Ingrese la API Key de Binance:', reply_markup=key)
             with shelve.open(files.sost_bd) as bd:
                 bd[str(chat_id)] = 19
@@ -752,7 +752,7 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif 'Añadir categoría' == message_text:
             key = telebot.types.ReplyKeyboardMarkup(True, False)
-            key.row('Cancelar')
+            key.row('❌ Cancelar')
             bot.send_message(chat_id, 'Ingrese el nombre de la nueva categoría:', reply_markup=key)
             set_state(chat_id, 61, 'main')
 
@@ -764,7 +764,7 @@ def in_adminka(chat_id, message_text, username, name_user):
                 user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
                 for _cid, cname in cats:
                     user_markup.row(cname)
-                user_markup.row('Cancelar')
+                user_markup.row('❌ Cancelar')
                 bot.send_message(chat_id, 'Seleccione la categoría a eliminar:', reply_markup=user_markup)
             set_state(chat_id, 60, 'main')
 
@@ -839,8 +839,17 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif '🎯 Nueva campaña' == message_text:
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='Volver al menú principal de administración'))
-            bot.send_message(chat_id, '📝 *Nombre de la campaña*\n\nEnvía el nombre para la nueva campaña:', reply_markup=key, parse_mode='Markdown')
+            key.add(
+                telebot.types.InlineKeyboardButton(
+                    text='❌ Cancelar', callback_data='Volver al menú principal de administración'
+                )
+            )
+            bot.send_message(
+                chat_id,
+                '📝 *Nombre de la campaña*\n\nEnvía el nombre para la nueva campaña:',
+                reply_markup=key,
+                parse_mode='Markdown',
+            )
             with shelve.open(files.sost_bd) as bd:
                 bd[str(chat_id)] = 160
 
@@ -852,8 +861,10 @@ def in_adminka(chat_id, message_text, username, name_user):
                 markup = telebot.types.ReplyKeyboardMarkup(True, False)
                 for g in goods:
                     markup.row(g)
-                markup.row('Cancelar')
-                bot.send_message(chat_id, 'Seleccione el producto para la campaña:', reply_markup=markup)
+                markup.row('❌ Cancelar')
+                bot.send_message(
+                    chat_id, 'Seleccione el producto para la campaña:', reply_markup=markup
+                )
                 with shelve.open(files.sost_bd) as bd:
                     bd[str(chat_id)] = 190
 
@@ -887,7 +898,7 @@ def in_adminka(chat_id, message_text, username, name_user):
                 key = telebot.types.InlineKeyboardMarkup()
                 key.add(
                     telebot.types.InlineKeyboardButton(
-                        text='Cancelar y volver a Marketing',
+                        text='❌ Cancelar y volver a Marketing',
                         callback_data='Volver a Marketing'
                     )
                 )
@@ -927,7 +938,7 @@ def in_adminka(chat_id, message_text, username, name_user):
                             if g.get('topic_id') is not None:
                                 label += f" (topic {g['topic_id']})"
                             markup.row(label)
-                        markup.row('Todos', 'Cancelar')
+                        markup.row('Todos', '❌ Cancelar')
 
                         os.makedirs('data/Temp', exist_ok=True)
                         tmp = f'data/Temp/{chat_id}_schedule.json'
@@ -1038,7 +1049,7 @@ def in_adminka(chat_id, message_text, username, name_user):
                     lines.append(
                         f"- {schedule_id} {camp_name}{freq_text} ({status}){schedule_text}{next_text}{groups_text}"
                     )
-                    toggle = 'Cancelar' if is_active else 'Reactivar'
+                    toggle = '❌ Cancelar' if is_active else 'Reactivar'
 
                     # Nueva modificación: agregar botones de acción por programación
                     markup.add(
@@ -1057,7 +1068,7 @@ def in_adminka(chat_id, message_text, username, name_user):
                     )
                 markup.add(
                     telebot.types.InlineKeyboardButton(
-                        text='Cancelar y volver a Marketing',
+                        text='❌ Cancelar y volver a Marketing',
                         callback_data='Volver a Marketing'
                     )
                 )
@@ -1098,7 +1109,7 @@ def in_adminka(chat_id, message_text, username, name_user):
                 markup = telebot.types.ReplyKeyboardMarkup(True, False)
                 for g in groups:
                     markup.row(f"{g['title']} ({g['id']})")
-                markup.row('Cancelar')
+                markup.row('❌ Cancelar')
                 tmp = f'data/Temp/{chat_id}_group_choices.json'
                 os.makedirs('data/Temp', exist_ok=True)
                 with open(tmp, 'w', encoding='utf-8') as f:
@@ -1109,13 +1120,13 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif message_text == '➖ Eliminar grupo':
             markup = telebot.types.ReplyKeyboardMarkup(True, False)
-            markup.row('Cancelar')
+            markup.row('❌ Cancelar')
             bot.send_message(chat_id, 'Envía el ID del grupo a eliminar:', reply_markup=markup)
             set_state(chat_id, 172, 'marketing')
 
         elif message_text == '🧵 Agregar Topic':
             markup = telebot.types.ReplyKeyboardMarkup(True, False)
-            markup.row('Cancelar')
+            markup.row('❌ Cancelar')
             bot.send_message(
                 chat_id,
                 '🧵 *Agregar Topic a un Grupo*\n\n'
@@ -1132,7 +1143,7 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif message_text == 'Introducir ID manual':
             markup = telebot.types.ReplyKeyboardMarkup(True, False)
-            markup.row('Cancelar')
+            markup.row('❌ Cancelar')
             bot.send_message(
                 chat_id,
                 'Envía el ID del grupo y opcionalmente el nombre.\n'
@@ -1203,7 +1214,7 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif message_text == 'Editar telegram':
             key = telebot.types.ReplyKeyboardMarkup(True, False)
-            key.row('Cancelar')
+            key.row('❌ Cancelar')
             bot.send_message(chat_id, 'Envíe la nueva configuración (texto o JSON) para Telegram:', reply_markup=key)
             set_state(chat_id, 175, 'marketing')
 
@@ -1230,7 +1241,7 @@ def in_adminka(chat_id, message_text, username, name_user):
                     if g.get('topic_id') is not None:
                         label += f" (topic {g['topic_id']})"
                     markup.row(label)
-                markup.row('Cancelar')
+                markup.row('❌ Cancelar')
                 
                 os.makedirs('data/Temp', exist_ok=True)
                 tmp = f'data/Temp/{chat_id}_manual_send.json'
@@ -1254,7 +1265,7 @@ def in_adminka(chat_id, message_text, username, name_user):
                     f.write('buyers\n')
                 amount = dop.get_amountsbayers()
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, '¿A cuántos usuarios desea enviar el boletín? Ingrese un número. Máximo posible ' + str(amount))
             with shelve.open(files.sost_bd) as bd:
                 bd[str(chat_id)] = 40
@@ -1280,7 +1291,7 @@ def in_adminka(chat_id, message_text, username, name_user):
                 bot.send_message(chat_id, '❌ Solo el super admin puede gestionar administradores.')
             else:
                 key = telebot.types.InlineKeyboardMarkup()
-                key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+                key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
                 bot.send_message(chat_id, 'Ingrese la ID del nuevo admin')
                 with shelve.open(files.sost_bd) as bd:
                     bd[str(chat_id)] = 21
@@ -1305,39 +1316,39 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif message_text == 'Cambiar nombre de tienda':
             key = telebot.types.ReplyKeyboardMarkup(True, False)
-            key.row('Cancelar')
+            key.row('❌ Cancelar')
             bot.send_message(chat_id, 'Ingrese el nuevo nombre de la tienda:', reply_markup=key)
             set_state(chat_id, 303, 'other')
 
         elif message_text == 'Cambiar descripción de tienda':
             key = telebot.types.ReplyKeyboardMarkup(True, False)
-            key.row('Cancelar')
+            key.row('❌ Cancelar')
             bot.send_message(chat_id, 'Ingrese la nueva descripción (o "ELIMINAR" para borrar):', reply_markup=key)
             set_state(chat_id, 304, 'other')
 
         elif message_text == 'Cambiar multimedia de tienda':
             key = telebot.types.ReplyKeyboardMarkup(True, False)
-            key.row('Cancelar')
+            key.row('❌ Cancelar')
             bot.send_message(chat_id, 'Envía una foto o video para la tienda o escribe "ELIMINAR"', reply_markup=key)
             set_state(chat_id, 305, 'other')
 
         elif message_text == 'Cambiar botones de tienda':
             key = telebot.types.ReplyKeyboardMarkup(True, False)
-            key.row('Cancelar')
+            key.row('❌ Cancelar')
             bot.send_message(chat_id, 'Texto para el primer botón (o "ninguno"):', reply_markup=key)
             set_state(chat_id, 306, 'other')
 
         elif message_text == 'Configurar límite de campañas':
             if chat_id == config.admin_id:
                 key = telebot.types.ReplyKeyboardMarkup(True, False)
-                key.row('Cancelar')
+                key.row('❌ Cancelar')
                 bot.send_message(chat_id, 'Ingrese el ID de la tienda a configurar:', reply_markup=key)
                 set_state(chat_id, 310, 'other')
             else:
                 shop_id = dop.get_shop_id(chat_id)
                 limit = dop.get_campaign_limit(shop_id)
                 key = telebot.types.ReplyKeyboardMarkup(True, False)
-                key.row('Cancelar')
+                key.row('❌ Cancelar')
                 bot.send_message(
                     chat_id,
                     f'Límite actual: {limit}\nIngresa el nuevo límite de campañas:',
@@ -1347,7 +1358,7 @@ def in_adminka(chat_id, message_text, username, name_user):
 
         elif message_text == 'Cambiar mensaje de inicio (/start)' and chat_id == config.admin_id:
             key = telebot.types.ReplyKeyboardMarkup(True, False)
-            key.row('Cancelar')
+            key.row('❌ Cancelar')
             bot.send_message(chat_id,
                              'Ingrese el nuevo mensaje de inicio. Puede usar `username` y `name`.',
                              parse_mode='Markdown', reply_markup=key)
@@ -1424,7 +1435,7 @@ def text_analytics(message_text, chat_id):
             with open('data/Temp/' + str(chat_id) + 'good_name.txt', 'w', encoding='utf-8') as f: 
                 f.write(message_text)
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Ahora ingrese la descripción', reply_markup=key)
             with shelve.open(files.sost_bd) as bd: 
                 bd[str(chat_id)] = 3
@@ -1455,7 +1466,7 @@ def text_analytics(message_text, chat_id):
                 with open('data/Temp/' + str(chat_id) + 'good_format.txt', 'w', encoding='utf-8') as f2:
                     f2.write('manual')
                 key = telebot.types.InlineKeyboardMarkup()
-                key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+                key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
                 bot.send_message(chat_id, 'Ahora ingrese la cantidad disponible en stock', reply_markup=key)
                 with shelve.open(files.sost_bd) as bd:
                     bd[str(chat_id)] = 12
@@ -1480,7 +1491,7 @@ def text_analytics(message_text, chat_id):
                 f.write(str(stock_val))
 
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Ahora ingrese la cantidad mínima para comprar', reply_markup=key)
             with shelve.open(files.sost_bd) as bd:
                 bd[str(chat_id)] = 5
@@ -1494,7 +1505,7 @@ def text_analytics(message_text, chat_id):
             with open('data/Temp/' + str(chat_id) + 'good_format.txt', 'w', encoding='utf-8') as f:
                 f.write(format_value)
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Ahora ingrese la cantidad mínima para comprar', reply_markup=key)
             with shelve.open(files.sost_bd) as bd: 
                 bd[str(chat_id)] = 5
@@ -1503,7 +1514,7 @@ def text_analytics(message_text, chat_id):
             with open('data/Temp/' + str(chat_id) + 'good_minimum.txt', 'w', encoding='utf-8') as f: 
                 f.write(message_text)
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Ahora ingrese el precio por unidad en USD', reply_markup=key)
             with shelve.open(files.sost_bd) as bd: 
                 bd[str(chat_id)] = 15
@@ -1514,7 +1525,7 @@ def text_analytics(message_text, chat_id):
 
             key = telebot.types.InlineKeyboardMarkup()
             key.add(telebot.types.InlineKeyboardButton(
-                text='Cancelar y volver al menú principal de administración',
+                text='❌ Cancelar y volver al menú principal de administración',
                 callback_data='Volver al menú principal de administración'
             ))
 
@@ -1599,7 +1610,7 @@ def text_analytics(message_text, chat_id):
 
             key = telebot.types.InlineKeyboardMarkup()
             key.add(telebot.types.InlineKeyboardButton(text='Añadir producto a la tienda', callback_data='Añadir producto a la tienda'))
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
 
             media_temp = 'data/Temp/' + str(chat_id) + 'new_media.txt'
             if os.path.exists(media_temp):
@@ -2116,7 +2127,7 @@ def text_analytics(message_text, chat_id):
                     if g.get('topic_id') is not None:
                         label += f" (topic {g['topic_id']})"
                     markup.row(label)
-                markup.row('Todos', 'Cancelar')
+                markup.row('Todos', '❌ Cancelar')
 
                 os.makedirs('data/Temp', exist_ok=True)
                 tmp = f'data/Temp/{chat_id}_schedule.json'
@@ -2131,7 +2142,7 @@ def text_analytics(message_text, chat_id):
             with open('data/Temp/' + str(chat_id) + 'paypal_client.txt', 'w', encoding='utf-8') as f:
                 f.write(message_text)
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Ahora ingrese el Client Secret de PayPal:', reply_markup=key)
             with shelve.open(files.sost_bd) as bd: 
                 bd[str(chat_id)] = 25
@@ -2161,7 +2172,7 @@ def text_analytics(message_text, chat_id):
             with open('data/Temp/' + str(chat_id) + 'binance_api.txt', 'w', encoding='utf-8') as f: 
                 f.write(message_text)
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Ahora ingrese el API Secret de Binance:', reply_markup=key)
             with shelve.open(files.sost_bd) as bd: 
                 bd[str(chat_id)] = 26
@@ -2175,7 +2186,7 @@ def text_analytics(message_text, chat_id):
                 cancel_and_reset(chat_id)
                 return
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Finalmente, ingrese el Merchant ID de Binance:', reply_markup=key)
             with open('data/Temp/' + str(chat_id) + 'binance_secret.txt', 'w', encoding='utf-8') as f: 
                 f.write(message_text)
@@ -2376,7 +2387,7 @@ def text_analytics(message_text, chat_id):
             )
             key.add(
                 telebot.types.InlineKeyboardButton(
-                    text='Cancelar y volver al menú principal de administración',
+                    text='❌ Cancelar y volver al menú principal de administración',
                     callback_data='Volver al menú principal de administración'
                 )
             )
@@ -2432,7 +2443,7 @@ def text_analytics(message_text, chat_id):
                     f.write(message_text)
 
                 key = telebot.types.InlineKeyboardMarkup()
-                key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+                key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
 
                 bot.send_message(chat_id,
                                  f'📝 **Editar descripción adicional para:** {message_text}\n\n'
@@ -2485,7 +2496,7 @@ def text_analytics(message_text, chat_id):
                     f.write(clean_name)
                 
                 key = telebot.types.InlineKeyboardMarkup()
-                key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='Volver al menú principal de administración'))
+                key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar', callback_data='Volver al menú principal de administración'))
                 
                 bot.send_message(chat_id,
                                 f'📤 **Agregar o cambiar multimedia a:** {clean_name}\n\n'
@@ -2541,7 +2552,7 @@ def text_analytics(message_text, chat_id):
                 f.write(str(amount) + '\n')
 
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Ingrese el texto del anuncio', reply_markup=key)
             with shelve.open(files.sost_bd) as bd:
                 bd[str(chat_id)] = 41
@@ -2551,7 +2562,7 @@ def text_analytics(message_text, chat_id):
                 f.write(message_text + '\n')
 
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
             bot.send_message(chat_id, 'Si desea añadir un archivo multimedia envíelo ahora o escriba "no"', reply_markup=key)
             with shelve.open(files.sost_bd) as bd:
                 bd[str(chat_id)] = 42
@@ -2624,7 +2635,7 @@ def text_analytics(message_text, chat_id):
             for _cid, cname in cats:
                 user_markup.row(cname)
             user_markup.row('Sin categoría')
-            user_markup.row('Cancelar')
+            user_markup.row('❌ Cancelar')
             bot.send_message(chat_id, 'Seleccione categoría (o "Sin categoría"):', reply_markup=user_markup)
             set_state(chat_id, 73, 'discount')
 
@@ -2653,7 +2664,7 @@ def text_analytics(message_text, chat_id):
             with open('data/Temp/' + str(chat_id) + 'campaign_name.txt', 'w', encoding='utf-8') as f:
                 f.write(message_text)
             key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver a Marketing', callback_data='Volver a Marketing'))
+            key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver a Marketing', callback_data='Volver a Marketing'))
             bot.send_message(chat_id, '📝 **Mensaje de la campaña**\n\nEscribe el texto que se enviará (máximo 500 caracteres):', reply_markup=key, parse_mode='Markdown')
             with shelve.open(files.sost_bd) as bd:
                 bd[str(chat_id)] = 161
@@ -2728,7 +2739,7 @@ def text_analytics(message_text, chat_id):
                 pass
 
         elif sost_num == 190:  # Selección de producto
-            if message_text == 'Cancelar':
+            if message_text == '❌ Cancelar':
                 with shelve.open(files.sost_bd) as bd:
                     del bd[str(chat_id)]
                 show_marketing_menu(chat_id)
@@ -2831,7 +2842,7 @@ def text_analytics(message_text, chat_id):
 
         elif sost_num == 170:  # Selección de grupo de Telegram
             tmp = f'data/Temp/{chat_id}_group_choices.json'
-            if message_text == 'Cancelar':
+            if message_text == '❌ Cancelar':
                 with shelve.open(files.sost_bd) as bd:
                     del bd[str(chat_id)]
                 if os.path.exists(tmp):
@@ -2912,7 +2923,7 @@ def text_analytics(message_text, chat_id):
 
         elif sost_num == 176:  # Envío manual a grupo
             tmp = f'data/Temp/{chat_id}_manual_send.json'
-            if message_text == 'Cancelar':
+            if message_text == '❌ Cancelar':
                 with shelve.open(files.sost_bd) as bd:
                     del bd[str(chat_id)]
                 if os.path.exists(tmp):
@@ -3036,7 +3047,7 @@ def ad_inline(callback_data, chat_id, message_id):
         key = telebot.types.InlineKeyboardMarkup()
         key.add(
             telebot.types.InlineKeyboardButton(
-                text='Cancelar y volver a Marketing',
+                text='❌ Cancelar y volver a Marketing',
                 callback_data='Volver a Marketing'
             )
         )
@@ -3109,7 +3120,7 @@ def ad_inline(callback_data, chat_id, message_id):
         key = telebot.types.InlineKeyboardMarkup()
         key.add(
             telebot.types.InlineKeyboardButton(
-                text='Cancelar y volver a Marketing',
+                text='❌ Cancelar y volver a Marketing',
                 callback_data='Volver a Marketing',
             )
         )
@@ -3126,7 +3137,7 @@ def ad_inline(callback_data, chat_id, message_id):
         key = telebot.types.InlineKeyboardMarkup()
         key.add(
             telebot.types.InlineKeyboardButton(
-                text='Cancelar y volver al menú principal de administración',
+                text='❌ Cancelar y volver al menú principal de administración',
                 callback_data='Volver al menú principal de administración'
             )
         )
@@ -3382,7 +3393,7 @@ def handle_multimedia(message):
                     telebot.types.InlineKeyboardButton(text='✅ Enviar boletín', callback_data='CONFIRM_BROADCAST')
                 )
                 key.add(
-                    telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración',
+                    telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración',
                                                        callback_data='Volver al menú principal de administración')
                 )
                 bot.send_message(chat_id, 'Archivo recibido. ¿Desea enviar el mensaje ahora?', reply_markup=key)
@@ -3452,7 +3463,7 @@ def handle_multimedia(message):
                     if caption:
                         f.write(caption)
                 key = telebot.types.InlineKeyboardMarkup()
-                key.add(telebot.types.InlineKeyboardButton(text='Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
+                key.add(telebot.types.InlineKeyboardButton(text='❌ Cancelar y volver al menú principal de administración', callback_data='Volver al menú principal de administración'))
                 bot.send_message(chat_id, 'Ingrese el nombre del nuevo producto', reply_markup=key)
                 with shelve.open(files.sost_bd) as bd:
                     bd[str(chat_id)] = 2
