@@ -47,6 +47,16 @@ def test_show_global_metrics_content(monkeypatch):
         'get_alerts',
         lambda limit=5: [{'level': 'ERROR', 'message': 'Algo'}],
     )
+    monkeypatch.setattr(
+        metrics_dashboard.db,
+        'get_sales_timeseries',
+        lambda store_id=None, days=7: [{'day': 'd1', 'total': 1}, {'day': 'd2', 'total': 3}],
+    )
+    monkeypatch.setattr(
+        metrics_dashboard.db,
+        'get_campaign_timeseries',
+        lambda store_id=None, days=7: [{'day': 'd1', 'count': 0}, {'day': 'd2', 'count': 2}],
+    )
     events = []
     monkeypatch.setattr(
         metrics_dashboard.db,
@@ -80,6 +90,8 @@ def test_show_global_metrics_content(monkeypatch):
     assert 'Shop1' in text
     assert 'Telethon: 1/2 activos' in text
     assert 'ERROR: Algo' in text
+    assert '💹' in text
+    assert '📣' in text
 
     markup = dummy.messages[0][2]
     buttons = [btn for row in markup.keyboard for btn in row if btn.callback_data == 'global_metrics']

@@ -4,6 +4,7 @@ import db
 import telethon_config
 import telethon_manager
 import datetime
+from utils.ascii_chart import sparkline
 from advertising_system.admin_integration import (
     manager as advertising,
     set_shop_id,
@@ -83,20 +84,30 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
 
     stats = db.get_store_stats(store_id)
     tele_stats = telethon_manager.get_stats(store_id)
+    sales_ts = db.get_sales_timeseries(store_id)
+    camp_ts = db.get_campaign_timeseries(store_id)
 
     # Construimos el mensaje línea por línea para facilitar su extensión y
     # evitar fallos si alguna estadística no está disponible.
     lines = [f"📊 *Dashboard de {store_name}*"]
-    lines.append(f"Productos: {stats.get('products', 0)}")
-    lines.append(f"Ventas: {stats.get('purchases', 0)}")
+    lines.append(f"📦 Productos: {stats.get('products', 0)}")
+    lines.append(f"🛒 Ventas totales: {stats.get('purchases', 0)}")
     if "revenue" in stats:
-        lines.append(f"Ingresos: ${stats.get('revenue', 0)}")
+        lines.append(f"💵 Ingresos: ${stats.get('revenue', 0)}")
+    if sales_ts:
+        vals = [s['total'] for s in sales_ts]
+        delta = vals[-1] - (vals[-2] if len(vals) > 1 else 0)
+        lines.append(f"💰 Ventas 7d: {sparkline(vals)} ({delta:+})")
+    if camp_ts:
+        vals = [c['count'] for c in camp_ts]
+        delta = vals[-1] - (vals[-2] if len(vals) > 1 else 0)
+        lines.append(f"📣 Campañas 7d: {sparkline(vals)} ({delta:+})")
 
     tele_state = "Activo" if tele_stats.get("active") else "Inactivo"
-    lines.append(f"Telethon: {tele_state}")
+    lines.append(f"🤖 Telethon: {tele_state}")
     sent = tele_stats.get("sent", 0)
     if sent:
-        lines.append(f"Envíos Telethon: {sent}")
+        lines.append(f"✉️ Envíos Telethon: {sent}")
 
     message = "\n".join(lines)
 
