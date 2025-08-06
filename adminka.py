@@ -768,15 +768,21 @@ def in_adminka(chat_id, message_text, username, name_user):
             show_discount_menu(chat_id)
 
         elif message_text == 'Cambiar texto':
-            key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='GLOBAL_CANCEL'))
-            bot.send_message(chat_id, 'Envíe el nuevo texto de descuento:', reply_markup=key)
+            key = nav_system.create_universal_navigation(chat_id, 'discount_change_text')
+            bot.send_message(
+                chat_id,
+                'Envíe el nuevo texto de descuento:',
+                reply_markup=key,
+            )
             set_state(chat_id, 33, 'discount')
 
         elif message_text == 'Cambiar porcentaje':
-            key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='GLOBAL_CANCEL'))
-            bot.send_message(chat_id, 'Envíe el nuevo porcentaje de descuento:', reply_markup=key)
+            key = nav_system.create_universal_navigation(chat_id, 'discount_change_percent')
+            bot.send_message(
+                chat_id,
+                'Envíe el nuevo porcentaje de descuento:',
+                reply_markup=key,
+            )
             set_state(chat_id, 34, 'discount')
 
         elif message_text in ('Ocultar precios tachados', 'Mostrar precios tachados'):
@@ -789,9 +795,12 @@ def in_adminka(chat_id, message_text, username, name_user):
             show_discount_menu(chat_id)
 
         elif 'Nuevo descuento' == message_text:
-            key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='GLOBAL_CANCEL'))
-            bot.send_message(chat_id, 'Ingrese porcentaje de descuento:', reply_markup=key)
+            key = nav_system.create_universal_navigation(chat_id, 'discount_new')
+            bot.send_message(
+                chat_id,
+                'Ingrese porcentaje de descuento:',
+                reply_markup=key,
+            )
             set_state(chat_id, 71, 'discount')
 
         elif 'Renombrar categoría' == message_text:
@@ -2581,9 +2590,12 @@ def text_analytics(message_text, chat_id):
                 return
             with open(f'data/Temp/{chat_id}_discount.txt', 'w', encoding='utf-8') as f:
                 f.write(str(percent))
-            key = telebot.types.InlineKeyboardMarkup()
-            key.add(telebot.types.InlineKeyboardButton(text='Cancelar', callback_data='GLOBAL_CANCEL'))
-            bot.send_message(chat_id, 'Duración en horas (0 permanente):', reply_markup=key)
+            key = nav_system.create_universal_navigation(chat_id, 'discount_duration')
+            bot.send_message(
+                chat_id,
+                'Duración en horas (0 permanente):',
+                reply_markup=key,
+            )
             set_state(chat_id, 72, 'discount')
 
         elif sost_num == 72:

@@ -50,7 +50,10 @@ def test_universal_navigation_buttons(monkeypatch):
     )
     monkeypatch.setitem(sys.modules, 'telebot', stub)
 
-    markup = nav_system.create_universal_navigation(1, 'test')
+    actions = [('A', 'a')]
+    markup = nav_system.create_universal_navigation(1, 'test', actions)
     texts = [b.text for b in markup.buttons]
+    assert 'A' in texts
     assert '🏠 Inicio' in texts
     assert '❌ Cancelar' in texts
+    assert nav_system.get_quick_actions(1) == actions
