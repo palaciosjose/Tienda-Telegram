@@ -14,27 +14,10 @@ from advertising_system.admin_integration import (
 )
 from bot_instance import bot
 from advertising_system.scheduler import CampaignScheduler
+from navigation import nav_system
 import logging
 
 logging.basicConfig(level=logging.INFO)
-
-
-class UnifiedNavigationSystem:
-    """Simple registry to route quick actions from inline callbacks."""
-
-    def __init__(self):
-        self._actions = {}
-
-    def register(self, name, func):
-        self._actions[name] = func
-
-    def handle(self, name, chat_id, store_id):
-        action = self._actions.get(name)
-        if action:
-            action(chat_id, store_id)
-
-
-nav_system = UnifiedNavigationSystem()
 
 
 def set_state(chat_id, state, prev='main'):
@@ -102,20 +85,17 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
     ]
     message = "\n".join(lines)
 
-    key = telebot.types.InlineKeyboardMarkup()
-    key.add(
-        telebot.types.InlineKeyboardButton(text="Mi Tienda", callback_data="dash_shop_info"),
-        telebot.types.InlineKeyboardButton(text="Productos", callback_data="dash_products"),
+    quick_actions = [
+        ("Mi Tienda", "dash_shop_info"),
+        ("Productos", "dash_products"),
+        ("Marketing", "dash_marketing"),
+        ("Telethon", "dash_telethon"),
+        ("⬅️ Cambiar Tienda", "dash_change_store"),
+        ("🔄 Actualizar", f"dash_refresh_{store_id}"),
+    ]
+    key = nav_system.create_universal_navigation(
+        chat_id, f"store_dashboard_{store_id}", quick_actions
     )
-    key.add(
-        telebot.types.InlineKeyboardButton(text="Marketing", callback_data="dash_marketing"),
-        telebot.types.InlineKeyboardButton(text="Telethon", callback_data="dash_telethon"),
-    )
-    key.add(
-        telebot.types.InlineKeyboardButton(text="⬅️ Cambiar Tienda", callback_data="dash_change_store"),
-        telebot.types.InlineKeyboardButton(text="🔄 Actualizar", callback_data=f"dash_refresh_{store_id}"),
-    )
-
     bot.send_message(chat_id, message, reply_markup=key, parse_mode="Markdown")
 
 
@@ -140,21 +120,20 @@ def show_marketing_unified(chat_id, store_id):
         f"Programaciones pendientes: {len(pending)}",
         f"Telethon: {'Activo' if tele_stats.get('active') else 'Inactivo'}",
     ]
-    key = telebot.types.InlineKeyboardMarkup()
-    key.add(
-        telebot.types.InlineKeyboardButton(text="➕ Nueva", callback_data="quick_new_campaign"),
-        telebot.types.InlineKeyboardButton(text="📋 Activas", callback_data="quick_stats"),
-        telebot.types.InlineKeyboardButton(text="🤖 Telethon", callback_data="quick_telethon"),
+    quick_actions = [
+        ("➕ Nueva", "quick_new_campaign"),
+        ("📋 Activas", "quick_stats"),
+        ("🤖 Telethon", "quick_telethon"),
+    ]
+    key = nav_system.create_universal_navigation(
+        chat_id, f"marketing_{store_id}", quick_actions
     )
     bot.send_message(chat_id, "\n".join(lines), reply_markup=key, parse_mode="Markdown")
 
 
 def quick_new_campaign(chat_id, store_id):
     """Initiate creation of a new campaign."""
-    key = telebot.types.InlineKeyboardMarkup()
-    key.add(
-        telebot.types.InlineKeyboardButton(text="Cancelar", callback_data="GLOBAL_CANCEL"),
-    )
+    key = nav_system.create_universal_navigation(chat_id, "new_campaign")
     bot.send_message(
         chat_id,
         "📝 *Nombre de la campaña*\n\nEnvía el nombre para la nueva campaña:",

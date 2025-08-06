@@ -1,5 +1,7 @@
 from tests.test_shop_info import setup_main
 import types
+import sys
+from navigation import nav_system
 
 
 def test_home_button_calls_main_menu(monkeypatch, tmp_path):
@@ -28,3 +30,27 @@ def test_home_button_calls_main_menu(monkeypatch, tmp_path):
     main.inline(cb)
 
     assert called.get('menu') == (5, 'u', 'N')
+
+def test_universal_navigation_buttons(monkeypatch):
+    class Markup:
+        def __init__(self):
+            self.buttons = []
+        def add(self, *btns):
+            self.buttons.extend(btns)
+
+    class Button:
+        def __init__(self, text, callback_data=None):
+            self.text = text
+            self.callback_data = callback_data
+
+    stub = types.SimpleNamespace(
+        types=types.SimpleNamespace(
+            InlineKeyboardMarkup=Markup, InlineKeyboardButton=Button
+        )
+    )
+    monkeypatch.setitem(sys.modules, 'telebot', stub)
+
+    markup = nav_system.create_universal_navigation(1, 'test')
+    texts = [b.text for b in markup.buttons]
+    assert '🏠 Inicio' in texts
+    assert '❌ Cancelar' in texts
