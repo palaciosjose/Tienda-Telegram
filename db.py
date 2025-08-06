@@ -171,3 +171,39 @@ def update_global_limit(key, value):
         (key, str(value)),
     )
     con.commit()
+
+
+def save_detected_topics(store_id, topics):
+    """Persist detected topics for a given store.
+
+    The topics argument should be an iterable of dictionaries containing the
+    keys: group_id, group_name, topic_id and topic_name."""
+
+    con = get_db_connection()
+    cur = con.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS store_topics (
+            store_id INTEGER,
+            group_id TEXT,
+            group_name TEXT,
+            topic_id INTEGER,
+            topic_name TEXT
+        )
+        """
+    )
+    cur.execute("DELETE FROM store_topics WHERE store_id=?", (store_id,))
+    cur.executemany(
+        "INSERT INTO store_topics (store_id, group_id, group_name, topic_id, topic_name) VALUES (?, ?, ?, ?, ?)",
+        [
+            (
+                store_id,
+                t.get("group_id"),
+                t.get("group_name"),
+                t.get("topic_id"),
+                t.get("topic_name"),
+            )
+            for t in topics
+        ],
+    )
+    con.commit()
