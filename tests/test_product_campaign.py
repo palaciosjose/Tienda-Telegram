@@ -7,7 +7,7 @@ def slug(name):
 
 
 def test_product_campaign_creates_button(monkeypatch, tmp_path):
-    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop, main, calls, bot = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
     sid = dop.create_shop("S1", admin_id=1)
     dop.create_product(
@@ -122,4 +122,60 @@ def test_product_selection_triggers_campaign(monkeypatch, tmp_path):
     assert created["message_text"] == "desc\nmore"
     assert created["media_file_id"] == "mfid"
     assert created["media_type"] == "photo"
+
+
+def test_show_marketing_unified(monkeypatch, tmp_path):
+    dop, main, calls, bot = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    sid = dop.create_shop("S1", admin_id=1)
+
+    monkeypatch.setattr(main.adminka, "bot", bot)
+    monkeypatch.setattr(main.adminka.advertising, "get_all_campaigns", lambda: [{"id": 1, "status": "active"}])
+    monkeypatch.setattr(
+        main.adminka,
+        "CampaignScheduler",
+        lambda *a, **k: types.SimpleNamespace(get_pending_sends=lambda: [1]),
+    )
+    monkeypatch.setattr(main.adminka.telethon_manager, "get_stats", lambda s: {"active": True})
+
+    main.adminka.show_marketing_unified(5, sid)
+
+    assert calls[-1][0] == "send_message"
+    buttons = calls[-1][2]["reply_markup"].buttons
+    texts = [b.text for b in buttons]
+    assert "➕ Nueva" in texts
+    assert "📋 Activas" in texts
+    assert "🤖 Telethon" in texts
+
+
+def test_quick_actions_dispatch(monkeypatch, tmp_path):
+    dop, main, calls, bot = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    sid = dop.create_shop("S1", admin_id=1)
+
+    triggered = []
+
+    def qn(chat_id, store_id):
+        triggered.append(("new", chat_id, store_id))
+
+    def qt(chat_id, store_id):
+        triggered.append(("tele", chat_id, store_id))
+
+    def qs(chat_id, store_id):
+        triggered.append(("stats", chat_id, store_id))
+
+    monkeypatch.setattr(main.adminka, "bot", bot)
+    monkeypatch.setattr(main.adminka, "quick_new_campaign", qn)
+    monkeypatch.setattr(main.adminka, "quick_telethon", qt)
+    monkeypatch.setattr(main.adminka, "quick_stats", qs)
+
+    main.adminka.nav_system.register("quick_new_campaign", qn)
+    main.adminka.nav_system.register("quick_telethon", qt)
+    main.adminka.nav_system.register("quick_stats", qs)
+
+    main.adminka.ad_inline("quick_new_campaign", 1, 0)
+    main.adminka.ad_inline("quick_telethon", 1, 0)
+    main.adminka.ad_inline("quick_stats", 1, 0)
+
+    assert triggered == [("new", 1, sid), ("tele", 1, sid), ("stats", 1, sid)]
 
