@@ -125,6 +125,7 @@ def test_product_selection_triggers_campaign(monkeypatch, tmp_path):
 
 
 def test_show_marketing_unified(monkeypatch, tmp_path):
+    """The marketing dashboard should use an inline keyboard with quick actions."""
     dop, main, calls, bot = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
     sid = dop.create_shop("S1", admin_id=1)
