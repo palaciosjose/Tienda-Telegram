@@ -116,13 +116,14 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
 
 
 def show_marketing_unified(chat_id, store_id):
-    """Show marketing dashboard with inline quick actions.
+    """Mostrar un *dashboard* compacto para la sección de marketing.
 
-    Combines current campaigns, pending scheduler jobs and the Telethon
-    state.  The menu relies on :func:`nav_system.create_universal_navigation`
-    to render an :class:`telebot.types.InlineKeyboardMarkup` with three short
-    actions: create a new campaign, list active ones and view Telethon stats.
+    Resumen de campañas activas, programaciones pendientes y estado del bot
+    de Telethon.  A la vez crea un pequeño menú de acciones rápidas mediante
+    ``InlineKeyboardMarkup`` para que el administrador pueda actuar sin salir
+    del panel.
     """
+    # Se intenta obtener la lista completa de campañas, ignorando errores.
     try:
         campaigns = advertising.get_all_campaigns()
     except Exception:
@@ -135,12 +136,14 @@ def show_marketing_unified(chat_id, store_id):
         pending = []
 
     tele_stats = telethon_manager.get_stats(store_id)
+    tele_state = "Activo" if tele_stats.get("active") else "Inactivo"
+    active_count = len([c for c in campaigns if c.get("status") == "active"])
 
     lines = [
         "📣 *Panel de Marketing*",
-        f"Campañas activas: {len([c for c in campaigns if c.get('status') == 'active'])}",
+        f"Campañas activas: {active_count}",
         f"Programaciones pendientes: {len(pending)}",
-        f"Telethon: {'Activo' if tele_stats.get('active') else 'Inactivo'}",
+        f"Telethon: {tele_state}",
     ]
     quick_actions = [
         ("➕ Nueva", "quick_new_campaign"),
