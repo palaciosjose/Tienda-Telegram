@@ -113,7 +113,13 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
 
 
 def show_marketing_unified(chat_id, store_id):
-    """Show marketing dashboard combining campaigns, schedules and telethon state."""
+    """Show marketing dashboard with inline quick actions.
+
+    Combines current campaigns, pending scheduler jobs and the Telethon
+    state.  The menu relies on :func:`nav_system.create_universal_navigation`
+    to render an :class:`telebot.types.InlineKeyboardMarkup` with three short
+    actions: create a new campaign, list active ones and view Telethon stats.
+    """
     try:
         campaigns = advertising.get_all_campaigns()
     except Exception:
