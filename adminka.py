@@ -19,6 +19,24 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 
+class UnifiedNavigationSystem:
+    """Simple registry to route quick actions from inline callbacks."""
+
+    def __init__(self):
+        self._actions = {}
+
+    def register(self, name, func):
+        self._actions[name] = func
+
+    def handle(self, name, chat_id, store_id):
+        action = self._actions.get(name)
+        if action:
+            action(chat_id, store_id)
+
+
+nav_system = UnifiedNavigationSystem()
+
+
 def set_state(chat_id, state, prev='main'):
     """Store user state and previous menu"""
     with shelve.open(files.sost_bd) as bd:
@@ -101,6 +119,69 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
     bot.send_message(chat_id, message, reply_markup=key, parse_mode="Markdown")
 
 
+def show_marketing_unified(chat_id, store_id):
+    """Show marketing dashboard combining campaigns, schedules and telethon state."""
+    try:
+        campaigns = advertising.get_all_campaigns()
+    except Exception:
+        campaigns = []
+
+    scheduler = CampaignScheduler(files.main_db, shop_id=store_id)
+    try:
+        pending = scheduler.get_pending_sends()
+    except Exception:
+        pending = []
+
+    tele_stats = telethon_manager.get_stats(store_id)
+
+    lines = [
+        "📣 *Panel de Marketing*",
+        f"Campañas activas: {len([c for c in campaigns if c.get('status') == 'active'])}",
+        f"Programaciones pendientes: {len(pending)}",
+        f"Telethon: {'Activo' if tele_stats.get('active') else 'Inactivo'}",
+    ]
+    key = telebot.types.InlineKeyboardMarkup()
+    key.add(
+        telebot.types.InlineKeyboardButton(text="➕ Nueva", callback_data="quick_new_campaign"),
+        telebot.types.InlineKeyboardButton(text="📋 Activas", callback_data="quick_stats"),
+        telebot.types.InlineKeyboardButton(text="🤖 Telethon", callback_data="quick_telethon"),
+    )
+    bot.send_message(chat_id, "\n".join(lines), reply_markup=key, parse_mode="Markdown")
+
+
+def quick_new_campaign(chat_id, store_id):
+    """Initiate creation of a new campaign."""
+    key = telebot.types.InlineKeyboardMarkup()
+    key.add(
+        telebot.types.InlineKeyboardButton(text="Cancelar", callback_data="GLOBAL_CANCEL"),
+    )
+    bot.send_message(
+        chat_id,
+        "📝 *Nombre de la campaña*\n\nEnvía el nombre para la nueva campaña:",
+        reply_markup=key,
+        parse_mode="Markdown",
+    )
+    set_state(chat_id, 160, prev="marketing")
+
+
+def quick_telethon(chat_id, store_id):
+    """Show telethon statistics for store."""
+    stats = telethon_manager.get_stats(store_id)
+    msg = "Activo" if stats.get("active") else "Inactivo"
+    bot.send_message(chat_id, f"🤖 Telethon: {msg}")
+
+
+def quick_stats(chat_id, store_id):
+    """Show list of campaigns for admin."""
+    text = list_campaigns_for_admin()
+    bot.send_message(chat_id, text, parse_mode="Markdown")
+
+
+nav_system.register("quick_new_campaign", quick_new_campaign)
+nav_system.register("quick_telethon", quick_telethon)
+nav_system.register("quick_stats", quick_stats)
+
+
 def show_discount_menu(chat_id):
     """Mostrar menú de configuración de descuentos"""
     shop_id = dop.get_shop_id(chat_id)
@@ -144,17 +225,9 @@ def show_product_menu(chat_id):
 
 
 def show_marketing_menu(chat_id):
-    """Mostrar el nuevo dashboard unificado para marketing."""
+    """Mostrar el panel unificado de marketing."""
     shop_id = dop.get_shop_id(chat_id)
-    try:
-        con = db.get_db_connection()
-        cur = con.cursor()
-        cur.execute("SELECT name FROM shops WHERE id = ?", (shop_id,))
-        row = cur.fetchone()
-        name = row[0] if row else str(shop_id)
-    except Exception:
-        name = str(shop_id)
-    show_store_dashboard_unified(chat_id, shop_id, name)
+    show_marketing_unified(chat_id, shop_id)
 
 
 def show_superadmin_dashboard(chat_id, user_id):
@@ -2883,6 +2956,9 @@ def text_analytics(message_text, chat_id):
 
 def ad_inline(callback_data, chat_id, message_id):
     shop_id = dop.get_shop_id(chat_id)
+    if callback_data.startswith('quick_'):
+        nav_system.handle(callback_data, chat_id, shop_id)
+        return
     if 'Volver al menú principal de administración' == callback_data:
         if dop.get_sost(chat_id) is True:
             with shelve.open(files.sost_bd) as bd:
