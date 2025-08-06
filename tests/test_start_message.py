@@ -86,10 +86,15 @@ def test_interface_superadmin(monkeypatch, tmp_path):
 
     calls.clear()
     main.show_main_interface(1, 1)
+    # Validate buttons
     markup = calls[-1][2]["reply_markup"]
     texts = [b.text for b in markup.buttons]
     assert "🌟 TIENDA PRINCIPAL - SuperAdmin" in texts
     assert any("S1" in t and "⚪" in t for t in texts)
+
+    # The message body also lists the stores with their indicators
+    sent_text = calls[-1][1][1]
+    assert "S1" in sent_text and "⚪" in sent_text
 
 
 def test_interface_regular_user(monkeypatch, tmp_path):
@@ -112,7 +117,12 @@ def test_interface_regular_user(monkeypatch, tmp_path):
 
     calls.clear()
     main.show_main_interface(2, 2)
+    # Validate buttons
     markup = calls[-1][2]["reply_markup"]
     texts = [b.text for b in markup.buttons]
     assert "🌟 TIENDA PRINCIPAL - SuperAdmin" not in texts
     assert any("S2" in t and "🤖" in t for t in texts)
+
+    # Ensure the message body reflects the same information
+    sent_text = calls[-1][1][1]
+    assert "S2" in sent_text and "🤖" in sent_text
