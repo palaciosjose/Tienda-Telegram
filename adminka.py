@@ -1,6 +1,7 @@
 import telebot, sqlite3, shelve, os, json, re
 import config, dop, files
 import db
+import telethon_config
 import datetime
 from advertising_system.admin_integration import (
     manager as advertising,
@@ -2895,6 +2896,10 @@ def ad_inline(callback_data, chat_id, message_id):
         clear_state(chat_id)
         bot.delete_message(chat_id, message_id)
         route_cancel(chat_id, prev)
+
+    elif callback_data == 'admin_telethon_config' or callback_data.startswith('global_'):
+        bot.delete_message(chat_id, message_id)
+        telethon_config.global_telethon_config(callback_data, chat_id)
 
     elif callback_data.startswith('EDIT_CAMPAIGN_'):
         camp_id = int(callback_data.split('_')[-1])

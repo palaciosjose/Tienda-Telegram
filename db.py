@@ -107,3 +107,32 @@ def get_user_stores(user_id):
     except Exception:
         return stores
     return stores
+
+
+def _ensure_global_config_table(cur):
+    """Ensure the global_config table exists."""
+    cur.execute(
+        "CREATE TABLE IF NOT EXISTS global_config (key TEXT PRIMARY KEY, value TEXT)"
+    )
+
+
+def get_global_telethon_status():
+    """Return all key/value pairs from the global configuration table."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_global_config_table(cur)
+    cur.execute("SELECT key, value FROM global_config")
+    return {k: v for k, v in cur.fetchall()}
+
+
+def update_global_limit(key, value):
+    """Update a limit value in the global configuration table."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_global_config_table(cur)
+    cur.execute(
+        "INSERT INTO global_config (key, value) VALUES (?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (key, str(value)),
+    )
+    con.commit()

@@ -2,6 +2,10 @@ import sqlite3
 import sys
 import types
 import json
+import os
+
+sys.path.append(os.getcwd())
+import db
 
 sys.modules.setdefault(
     "telebot",
@@ -347,4 +351,23 @@ def test_deactivate_schedule_removes_from_pending(tmp_path, monkeypatch):
 
     manager.deactivate_schedule(schedule_id)
     assert scheduler.get_pending_sends() == []
+
+
+def test_update_global_limit(tmp_path, monkeypatch):
+    import files
+    monkeypatch.setattr(files, "main_db", str(tmp_path / "main.db"))
+    conn = sqlite3.connect(files.main_db)
+    conn.execute(
+        "CREATE TABLE global_config (key TEXT PRIMARY KEY, value TEXT)"
+    )
+    conn.commit()
+    conn.close()
+
+    db.update_global_limit("daily_limit", "5")
+    status = db.get_global_telethon_status()
+    assert status.get("daily_limit") == "5"
+
+    db.update_global_limit("daily_limit", "7")
+    status = db.get_global_telethon_status()
+    assert status.get("daily_limit") == "7"
 
