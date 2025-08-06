@@ -131,6 +131,10 @@ def show_main_interface(chat_id, user_id):
         )
 
     stores = db.get_user_stores(user_id)
+    if not stores and role != "superadmin":
+        _send_long_message(chat_id, "No tienes tiendas disponibles.")
+        return
+
     for store in stores:
         status_emoji = "🟢" if store.get("status") else "🔴"
         telethon_emoji = "🤖" if store.get("telethon_active") else "⚪"
