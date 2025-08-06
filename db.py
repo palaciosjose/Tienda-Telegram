@@ -109,6 +109,41 @@ def get_user_stores(user_id):
     return stores
 
 
+def get_store_stats(store_id):
+    """Return basic statistics for a store.
+
+    The function is resilient to missing tables and will return zeros if the
+    required data is not available."""
+    stats = {"products": 0, "purchases": 0, "revenue": 0}
+    try:
+        con = get_db_connection()
+        cur = con.cursor()
+
+        try:
+            cur.execute(
+                "SELECT COUNT(*) FROM goods WHERE shop_id = ?",
+                (store_id,),
+            )
+            stats["products"] = cur.fetchone()[0]
+        except Exception:
+            pass
+
+        try:
+            cur.execute(
+                "SELECT COUNT(*), COALESCE(SUM(price),0) FROM purchases WHERE shop_id = ?",
+                (store_id,),
+            )
+            row = cur.fetchone()
+            stats["purchases"] = row[0]
+            stats["revenue"] = row[1]
+        except Exception:
+            pass
+    except Exception:
+        return stats
+
+    return stats
+
+
 def _ensure_global_config_table(cur):
     """Ensure the global_config table exists."""
     cur.execute(

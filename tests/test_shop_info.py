@@ -192,3 +192,15 @@ def test_shop_rating_shown(monkeypatch, tmp_path):
 
     assert "4.5" in text
     assert any(b.text.startswith("⭐") for b in buttons)
+
+
+def test_dashboard_has_telethon_button(monkeypatch, tmp_path):
+    dop, _, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    sid = dop.create_shop("S1", admin_id=1)
+    import importlib, adminka
+    importlib.reload(adminka)
+    adminka.show_store_dashboard_unified(5, sid, "S1")
+    buttons = calls[-1][2]["reply_markup"].buttons
+    texts = [b.text for b in buttons]
+    assert any("Telethon" in t for t in texts)

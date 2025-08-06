@@ -3,6 +3,8 @@ import sqlite3
 import sys
 import types
 import json
+import os
+from pathlib import Path
 
 # Minimal database schema copied from advertising tests
 CREATE_CAMPAIGNS_TABLE = """CREATE TABLE IF NOT EXISTS campaigns (
@@ -221,3 +223,48 @@ def test_auto_sender_respects_group_ids(tmp_path, monkeypatch):
 
     sender._send_telegram_campaign(camp_id, schedule_id, row)
     assert DummyTeleBotWithGroup.calls == [('g2', 2)]
+
+
+def test_dashboard_has_telethon_button(monkeypatch, tmp_path):
+    calls = []
+
+    class Bot:
+        def send_message(self, chat_id, text=None, reply_markup=None, **kw):
+            calls.append(reply_markup)
+
+    class Markup:
+        def __init__(self):
+            self.buttons = []
+
+        def add(self, *btns):
+            self.buttons.extend(btns)
+
+    class Button:
+        def __init__(self, text, callback_data=None, url=None):
+            self.text = text
+            self.callback_data = callback_data
+            self.url = url
+
+    telebot_stub_local = types.SimpleNamespace(
+        TeleBot=lambda *a, **k: Bot(),
+        types=types.SimpleNamespace(InlineKeyboardMarkup=Markup, InlineKeyboardButton=Button),
+    )
+    monkeypatch.setitem(sys.modules, 'telebot', telebot_stub_local)
+    bot = telebot_stub_local.TeleBot()
+    monkeypatch.setitem(sys.modules, 'bot_instance', types.SimpleNamespace(bot=bot))
+
+    root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+
+    import files
+    monkeypatch.setattr(files, 'main_db', str(tmp_path / 'main.db'))
+    os.makedirs('data/db', exist_ok=True)
+    open('data/db/main_data.db', 'w').close()
+
+    import importlib, db, adminka
+    importlib.reload(adminka)
+    sid = 1
+    adminka.show_store_dashboard_unified(1, sid, 'S1')
+    btn_texts = [b.text for b in calls[0].buttons]
+    assert any('Telethon' in t for t in btn_texts)
