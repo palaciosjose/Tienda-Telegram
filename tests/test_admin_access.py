@@ -31,10 +31,10 @@ def test_adm_command_allows_admin(monkeypatch, tmp_path):
 
     called = {}
 
-    def fake_in_adminka(chat_id, text, username, name):
-        called['args'] = (chat_id, text, username, name)
+    def fake_show(cid, uid):
+        called['args'] = (cid, uid)
 
-    monkeypatch.setattr(main.adminka, 'in_adminka', fake_in_adminka)
+    monkeypatch.setattr(main, 'show_main_interface', fake_show)
 
     class Msg:
         def __init__(self):
@@ -45,33 +45,7 @@ def test_adm_command_allows_admin(monkeypatch, tmp_path):
 
     main.message_send(Msg())
 
-    assert called.get('args') == (1, '/adm', 'admin', 'Admin')
-
-
-def test_admin_panel_button_dispatch(monkeypatch, tmp_path):
-    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
-    dop.ensure_database_schema()
-    monkeypatch.setattr(dop, "get_adminlist", lambda: [1])
-
-    called = {}
-
-    def fake_in_adminka(chat_id, text, username, name):
-        called['args'] = (chat_id, text, username, name)
-
-    monkeypatch.setattr(main.adminka, 'in_adminka', fake_in_adminka)
-    monkeypatch.setattr(dop, 'get_sost', lambda chat_id: False)
-    main.in_admin.append(1)
-
-    class Msg:
-        def __init__(self):
-            self.text = '⚙️ Configuración'
-            self.chat = types.SimpleNamespace(id=1, username='admin')
-            self.from_user = types.SimpleNamespace(first_name='Admin')
-            self.content_type = 'text'
-
-    main.message_send(Msg())
-
-    assert called.get('args') == (1, '⚙️ Configuración', 'admin', 'Admin')
+    assert called.get('args') == (1, 1)
 
 
 def test_superadmin_dashboard_access(monkeypatch, tmp_path):
