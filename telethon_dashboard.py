@@ -1,6 +1,7 @@
 import telebot
 from bot_instance import bot
 import telethon_manager
+from navigation import nav_system
 
 
 def show_telethon_dashboard(chat_id, store_id):
@@ -13,18 +14,12 @@ def show_telethon_dashboard(chat_id, store_id):
         f"Estado: {status}",
         f"Enviados: {sent}",
     ]
-    key = telebot.types.InlineKeyboardMarkup()
-    key.add(
-        telebot.types.InlineKeyboardButton(
-            text="Detectar topics", callback_data=f"telethon_detect_{store_id}"
-        ),
-        telebot.types.InlineKeyboardButton(
-            text="Probar envío", callback_data=f"telethon_test_{store_id}"
-        ),
-    )
-    key.add(
-        telebot.types.InlineKeyboardButton(
-            text="Reiniciar daemon", callback_data=f"telethon_restart_{store_id}"
-        )
+    quick_actions = [
+        ("Detectar topics", f"telethon_detect_{store_id}"),
+        ("Probar envío", f"telethon_test_{store_id}"),
+        ("Reiniciar daemon", f"telethon_restart_{store_id}"),
+    ]
+    key = nav_system.create_universal_navigation(
+        chat_id, f"telethon_dashboard_{store_id}", quick_actions
     )
     bot.send_message(chat_id, "\n".join(lines), reply_markup=key, parse_mode="Markdown")

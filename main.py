@@ -2,6 +2,7 @@ import telebot, shelve, sqlite3, os, types
 import config, dop, payments, adminka, files
 import db
 from bot_instance import bot
+from navigation import nav_system
 
 try:
     bot_username = bot.get_me().username.lower()
@@ -70,13 +71,13 @@ atexit.register(remove_pid_file)
 
 def send_main_menu(chat_id, username, name):
     """Enviar el mensaje de inicio con el teclado principal"""
-    key = telebot.types.InlineKeyboardMarkup()
-    key.add(telebot.types.InlineKeyboardButton(text='🛍️ Catálogo', callback_data='Ir al catálogo de productos'))
-    key.add(telebot.types.InlineKeyboardButton(
-        text='📜 Mis compras', callback_data='Ver mis compras'))
-    key.add(telebot.types.InlineKeyboardButton(
-        text='🔍 Buscar productos', callback_data='Buscar productos'))
-    key.add(telebot.types.InlineKeyboardButton(text='Cambiar tienda', callback_data='Cambiar tienda'))
+    quick_actions = [
+        ('🛍️ Catálogo', 'Ir al catálogo de productos'),
+        ('📜 Mis compras', 'Ver mis compras'),
+        ('🔍 Buscar productos', 'Buscar productos'),
+        ('Cambiar tienda', 'Cambiar tienda'),
+    ]
+    key = nav_system.create_universal_navigation(chat_id, 'main_menu', quick_actions)
     if dop.check_message('start'):
         with shelve.open(files.bot_message_bd) as bd:
             start_message = bd['start']
@@ -412,7 +413,7 @@ def inline(callback):
         # Solo obtener goods cuando sea necesario - optimización aplicada
         the_goods = None
         shop_id_cb = dop.get_user_shop(callback.message.chat.id)
-        if callback.data == 'Ir al catálogo de productos' or (callback.data not in ['APROBAR_PAGO_', 'RECHAZAR_PAGO_', 'Enviar comprobante Binance', 'Volver al inicio', 'Comprar'] and not callback.data.startswith('MAS_INFO_')):
+        if callback.data == 'Ir al catálogo de productos' or (callback.data not in ['APROBAR_PAGO_', 'RECHAZAR_PAGO_', 'Enviar comprobante Binance', 'Volver al inicio', 'GLOBAL_CANCEL', 'Comprar'] and not callback.data.startswith('MAS_INFO_')):
             the_goods = dop.get_goods(shop_id_cb)
         
         # Manejar callbacks de aprobación/rechazo de pagos
@@ -434,6 +435,14 @@ def inline(callback):
                                      text='📱 Envía una captura de pantalla del comprobante de pago como imagen al chat')
             return
         
+        if callback.data == 'GLOBAL_CANCEL':
+            send_main_menu(
+                callback.message.chat.id,
+                getattr(callback.from_user, 'username', ''),
+                getattr(callback.from_user, 'first_name', ''),
+            )
+            return
+
         if callback.data == 'select_store_main':
             adminka.show_superadmin_dashboard(callback.message.chat.id, callback.from_user.id)
 
