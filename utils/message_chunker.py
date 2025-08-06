@@ -1,11 +1,14 @@
 import math
 
 
-def send_long_message(bot, chat_id, text, markup=None, parse_mode=None):
-    """Send text in chunks safe for Telegram (<4096 chars).
+def send_long_message(bot, chat_id, text, markup=None, parse_mode=None, **kwargs):
+    """Send ``text`` split into 4096‑character chunks.
 
-    Adds a simple page header ("1/3") when the text spans multiple messages.
-    The reply markup, if provided, is only attached to the first message.
+    Each chunk is prefixed with a simple ``"1/3"`` style header when the
+    message spans multiple parts.  Any ``reply_markup`` is only attached to the
+    first chunk.  Additional keyword arguments are forwarded to
+    :meth:`bot.send_message` allowing callers to specify parameters such as
+    ``disable_web_page_preview``.
     """
     if text is None:
         text = ""
@@ -27,4 +30,5 @@ def send_long_message(bot, chat_id, text, markup=None, parse_mode=None):
             header + chunk,
             reply_markup=markup if idx == 1 else None,
             parse_mode=parse_mode,
+            **kwargs,
         )
