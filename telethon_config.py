@@ -97,13 +97,52 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
 
     with shelve.open(files.sost_bd) as bd:
         step = bd.get(key, 0)
+
+        # Handle going backwards without executing side effects for the new step.
         if action == "prev" and step > 0:
             step -= 1
             bd[key] = step
+            # Show the prompt for the new step and exit early.
+            if step == 0:
+                status = db.get_global_telethon_status()
+                msg = (
+                    "Faltan credenciales de Telethon. Configura API ID y API HASH primero."
+                    if not status.get("api_id") or not status.get("api_hash")
+                    else "Credenciales OK. Proporciona el ID del grupo bridge."
+                )
+                send_long_message(bot, chat_id, msg)
+            elif step == 1:
+                markup = telebot.types.InlineKeyboardMarkup()
+                markup.add(
+                    telebot.types.InlineKeyboardButton(
+                        text="⬅️ Atrás", callback_data=f"telethon_prev_{store_id}"
+                    )
+                )
+                send_long_message(
+                    bot,
+                    chat_id,
+                    "Credenciales OK. Proporciona el ID del grupo bridge.",
+                    markup=markup,
+                )
+            elif step == 2:
+                markup = telebot.types.InlineKeyboardMarkup()
+                markup.add(
+                    telebot.types.InlineKeyboardButton(
+                        text="⬅️ Atrás", callback_data=f"telethon_prev_{store_id}"
+                    )
+                )
+                send_long_message(
+                    bot,
+                    chat_id,
+                    "Detección de topics completada. Ejecuta una prueba.",
+                    markup=markup,
+                )
+            return
 
         status = db.get_global_telethon_status()
 
         if step == 0:
+            # Ensure API credentials exist before moving forward.
             if not status.get("api_id") or not status.get("api_hash"):
                 send_long_message(
                     bot,
@@ -112,8 +151,7 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
                 )
                 bd[key] = 0
                 return
-            step = 1
-            bd[key] = step
+            bd[key] = 1
             markup = telebot.types.InlineKeyboardMarkup()
             markup.add(
                 telebot.types.InlineKeyboardButton(
@@ -129,9 +167,8 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
             return
 
         if step == 1:
-            step = 2
-            bd[key] = step
             telethon_manager.detect_topics(store_id)
+            bd[key] = 2
             markup = telebot.types.InlineKeyboardMarkup()
             markup.add(
                 telebot.types.InlineKeyboardButton(
@@ -147,9 +184,8 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
             return
 
         if step == 2:
-            step = 3
-            bd[key] = step
             telethon_manager.test_send(store_id)
+            bd[key] = 3
             markup = telebot.types.InlineKeyboardMarkup()
             markup.add(
                 telebot.types.InlineKeyboardButton(
@@ -164,10 +200,11 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
             )
             return
 
-        if step == 3:
+        if step >= 3:
             telethon_manager.restart_daemon(store_id)
             send_long_message(bot, chat_id, "Telethon activado correctamente.")
-            del bd[key]
+            if key in bd:
+                del bd[key]
 
 
 def telethon_wizard_callback(callback_data, chat_id):
