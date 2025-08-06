@@ -42,7 +42,7 @@ def show_global_metrics(chat_id, user_id):
         ],
     )
     send_long_message(bot, chat_id, '\n'.join(lines), markup=key, parse_mode='Markdown')
-    db.log_event('INFO', f'global_metrics viewed by {user_id}')
+    db.log_event('INFO', f'user {user_id} viewed global_metrics')
 
 
 def _global_metrics_nav(chat_id, _store_id=None):
