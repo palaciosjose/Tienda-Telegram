@@ -182,29 +182,25 @@ def _ensure_unified_logs_table(cur):
 
 
 def _ensure_shop_extra_columns(cur):
-    """Ensure extended columns exist in shops table."""
+    """Ensure Telethon and campaign limit fields exist in the shops table."""
+
+    columns = {
+        "telethon_enabled": "INTEGER DEFAULT 0",
+        "telethon_api_id": "TEXT",
+        "telethon_api_hash": "TEXT",
+        "telethon_phone": "TEXT",
+        "telethon_bridge_group": "TEXT",
+        "telethon_daemon_status": "TEXT",
+        "telethon_last_activity": "TEXT",
+        "max_campaigns_daily": "INTEGER DEFAULT 0",
+        "current_campaigns_today": "INTEGER DEFAULT 0",
+    }
+
     cur.execute("PRAGMA table_info(shops)")
-    cols = [c[1] for c in cur.fetchall()]
-    if "telethon_enabled" not in cols:
-        cur.execute("ALTER TABLE shops ADD COLUMN telethon_enabled INTEGER DEFAULT 0")
-    if "telethon_api_id" not in cols:
-        cur.execute("ALTER TABLE shops ADD COLUMN telethon_api_id TEXT")
-    if "telethon_api_hash" not in cols:
-        cur.execute("ALTER TABLE shops ADD COLUMN telethon_api_hash TEXT")
-    if "telethon_phone" not in cols:
-        cur.execute("ALTER TABLE shops ADD COLUMN telethon_phone TEXT")
-    if "telethon_bridge_group" not in cols:
-        cur.execute("ALTER TABLE shops ADD COLUMN telethon_bridge_group TEXT")
-    if "telethon_daemon_status" not in cols:
-        cur.execute("ALTER TABLE shops ADD COLUMN telethon_daemon_status TEXT")
-    if "telethon_last_activity" not in cols:
-        cur.execute("ALTER TABLE shops ADD COLUMN telethon_last_activity TEXT")
-    if "max_campaigns_daily" not in cols:
-        cur.execute("ALTER TABLE shops ADD COLUMN max_campaigns_daily INTEGER DEFAULT 0")
-    if "current_campaigns_today" not in cols:
-        cur.execute(
-            "ALTER TABLE shops ADD COLUMN current_campaigns_today INTEGER DEFAULT 0"
-        )
+    existing = {c[1] for c in cur.fetchall()}
+    for name, definition in columns.items():
+        if name not in existing:
+            cur.execute(f"ALTER TABLE shops ADD COLUMN {name} {definition}")
 
 
 def get_global_telethon_status():
@@ -426,7 +422,7 @@ def reset_daily_campaigns(shop_id=None):
 
 
 def log_event(level, message, store_id=None):
-    """Insert an entry into unified_logs."""
+    """Insert an entry into unified_logs and return its identifier."""
     con = get_db_connection()
     cur = con.cursor()
     _ensure_unified_logs_table(cur)
@@ -434,7 +430,9 @@ def log_event(level, message, store_id=None):
         "INSERT INTO unified_logs (level, message, store_id) VALUES (?, ?, ?)",
         (level, message, store_id),
     )
+    log_id = cur.lastrowid
     con.commit()
+    return log_id
 
 
 def get_unified_logs(limit=100, store_id=None):
