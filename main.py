@@ -119,9 +119,27 @@ def _send_long_message(chat_id, text, reply_markup=None):
 
 
 def show_main_interface(chat_id, user_id):
-    """Mostrar la interfaz principal con las tiendas del usuario."""
+    """Mostrar la interfaz principal con las tiendas del usuario.
+
+    The interface lists every store available to ``user_id`` with an inline
+    button.  Each button displays the store name plus two state indicators:
+
+    * ``🟢``/``🔴`` – whether the store itself is enabled.
+    * ``🤖``/``⚪`` – whether the Telethon integration is active.
+
+    Super administrators get a dedicated button to access the main store.
+    The human readable list of stores is also included in the message body so
+    that very long store lists still remain visible even if the keyboard is
+    truncated.  When the resulting text exceeds Telegram's 4096 character
+    limit, ``_send_long_message`` will split the output into multiple
+    messages, attaching the keyboard only to the last chunk.
+    """
+
     key = telebot.types.InlineKeyboardMarkup()
     role = db.get_user_role(user_id)
+    lines = []
+
+    # Optional main-store access for the platform owner
     if role == "superadmin":
         key.add(
             telebot.types.InlineKeyboardButton(
@@ -131,13 +149,17 @@ def show_main_interface(chat_id, user_id):
         )
 
     stores = db.get_user_stores(user_id)
+
+    # If the user has no stores and isn't a super admin, show a warning
     if not stores and role != "superadmin":
         _send_long_message(chat_id, "No tienes tiendas disponibles.")
         return
 
+    # Build both the inline buttons and a textual list for context.
     for store in stores:
         status_emoji = "🟢" if store.get("status") else "🔴"
         telethon_emoji = "🤖" if store.get("telethon_active") else "⚪"
+
         key.add(
             telebot.types.InlineKeyboardButton(
                 text=f"{store['name']} {status_emoji} {telethon_emoji}",
@@ -145,7 +167,14 @@ def show_main_interface(chat_id, user_id):
             )
         )
 
-    _send_long_message(chat_id, "Seleccione una tienda:", reply_markup=key)
+        lines.append(f"{store['name']} {status_emoji} {telethon_emoji}")
+
+    # Compose final message text with optional list of stores
+    text = "Seleccione una tienda:"
+    if lines:
+        text += "\n" + "\n".join(lines)
+
+    _send_long_message(chat_id, text, reply_markup=key)
 
 def show_shop_selection(chat_id, message=None):
     """Mostrar listado de tiendas disponibles"""
