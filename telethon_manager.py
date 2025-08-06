@@ -40,8 +40,8 @@ def get_stats(shop_id):
     return stats
 
 
-def detect_topics(shop_id, progress_callback=lambda msg: None):
-    """Detect topics for a shop using Telethon and store the results.
+def detect_topics(store_id, progress_callback=lambda msg: None):
+    """Detect topics for a store using Telethon and store the results.
 
     The function connects with a :class:`TelegramClient` and iterates over the
     dialogs looking for groups that expose forum topics. Each detected topic is
@@ -56,7 +56,7 @@ def detect_topics(shop_id, progress_callback=lambda msg: None):
     topics = []
     summary_lines = []
 
-    client = TelegramClient(f"store_{shop_id}", 0, "0")
+    client = TelegramClient(f"store_{store_id}", 0, "0")
     try:
         progress_callback("Conectando con Telegram...")
         client.connect()
@@ -99,12 +99,12 @@ def detect_topics(shop_id, progress_callback=lambda msg: None):
         except Exception:
             pass
 
-    db.save_detected_topics(shop_id, topics)
+    db.save_detected_topics(store_id, topics)
     progress_callback("Detección finalizada")
     return "\n".join(summary_lines) if summary_lines else "No se detectaron topics"
 
 
-def start_auto_detection(shop_id, mode="all", progress_callback=lambda msg: None):
+def start_auto_detection(store_id, mode="all", progress_callback=lambda msg: None):
     """Simulate automatic configuration with progress bars."""
 
     steps = 10
