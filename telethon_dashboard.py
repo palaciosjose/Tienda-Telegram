@@ -6,7 +6,13 @@ from utils.message_chunker import send_long_message
 
 
 def show_telethon_dashboard(chat_id, store_id):
-    """Send a small dashboard with Telethon stats and action buttons."""
+    """Send a compact dashboard with Telethon stats and action buttons.
+
+    The stats are pulled from :mod:`telethon_manager` and summarize whether
+    the Telethon daemon is active for the given store and how many messages
+    were sent. The message also includes quick action buttons for detecting
+    topics, testing a message send and restarting the daemon.
+    """
 
     stats = telethon_manager.get_stats(store_id) or {}
     status = "Activo" if stats.get("active") else "Inactivo"
