@@ -21,8 +21,9 @@ def show_global_telethon_config(chat_id, user_id):
 
     status = db.get_global_telethon_status()
     lines = ["⚙️ *Configuración Global de Telethon*"]
-    for key, value in status.items():
-        lines.append(f"{key}: {value}")
+    # Sort keys to keep the output stable for administrators
+    for key in sorted(status):
+        lines.append(f"{key}: {status[key]}")
     if len(lines) == 1:
         lines.append("Sin configuración")
 

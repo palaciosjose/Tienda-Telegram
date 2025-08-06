@@ -360,9 +360,10 @@ def test_update_global_limit(tmp_path, monkeypatch):
 
     # Point the application database to a temporary location
     monkeypatch.setattr(files, "main_db", str(tmp_path / "main.db"))
+    # ``update_global_limit`` should create the configuration table on demand.
+    # The test therefore does not pre-create any schema and relies on the
+    # helper to do so implicitly.
     conn = sqlite3.connect(files.main_db)
-    conn.execute("CREATE TABLE global_config (key TEXT PRIMARY KEY, value TEXT)")
-    conn.commit()
     conn.close()
 
     # First insert
