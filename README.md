@@ -238,6 +238,41 @@ ellos se incluyen **💬 Respuestas**, **📦 Surtido**, **➕ Producto**, **�
 **📊 Stats**, **Resumen de compradores**, **📣 Difusión**, **📢 Marketing**,
 **💸 Descuentos** y **⚙️ Otros**.
 
+### Dashboard de tiendas y navegación
+
+Cada tienda dispone de un *dashboard* con estadísticas rápidas y accesos
+directos. Un mensaje típico luce así:
+
+```
+📊 Dashboard de MiTienda
+Productos: 5
+Ventas: 12
+Telethon: Activo
+```
+
+Los botones `Mi Tienda`, `Productos`, `Marketing`, `Telethon`, `⬅️ Cambiar Tienda`
+y `🔄 Actualizar` se presentan junto a `🏠 Inicio` y `❌ Cancelar`, imitando la
+navegación clásica de BotFather.
+
+### Configuración de Telethon
+
+Para habilitar el envío desde una cuenta de usuario:
+
+1. En el menú principal toca **Config Telethon global** e ingresa tus
+   credenciales `api_id` y `api_hash`.
+2. Desde el dashboard de la tienda abre **Telethon** y pulsa `🚀 Iniciar config`.
+3. Proporciona el ID del grupo bridge, espera la detección de topics y ejecuta
+   una prueba de envío.
+4. El asistente activará automáticamente el daemon al finalizar.
+
+Mensajes habituales del asistente:
+
+```
+Credenciales OK. Proporciona el ID del grupo bridge.
+Detección de topics completada. Ejecuta una prueba.
+Prueba enviada. Activa el servicio.
+```
+
 Si en mitad de un proceso quieres detenerte, escribe `/cancel` o pulsa el botón
 *Cancelar* que aparece en muchos diálogos para volver al menú previo.
 
@@ -284,15 +319,31 @@ obtenidos.
 
 ## Marketing/Advertising
 
-El sistema incluye un módulo de **marketing automatizado** para enviar
-campañas a distintos grupos de Telegram. Todas las tablas
-necesarias (`campaigns`, `campaign_schedules`, `target_groups`, etc.) se
-crean automáticamente cuando ejecutas `init_db.py`, por lo que no requiere
-una configuración extra.
+El **📣 Panel de Marketing** unifica campañas, programaciones y el estado de
+Telethon. Al abrirlo se muestran accesos rápidos:
 
-Para mantener activo el envío automático ejecuta `advertising_cron.py` de
-forma periódica o déjalo en segundo plano mediante un servicio `systemd` o
-una entrada de `cron`:
+- `➕ Nueva` para registrar una campaña.
+- `📋 Activas` para listar las campañas existentes.
+- `🤖 Telethon` para ver o reiniciar el servicio.
+
+Ejemplo de mensaje:
+
+```
+📣 Panel de Marketing
+Campañas activas: 2
+Programaciones pendientes: 1
+Telethon: Activo
+```
+
+El sistema incluye un módulo de **marketing automatizado** para enviar
+campañas a distintos grupos de Telegram. Todas las tablas necesarias
+(`campaigns`, `campaign_schedules`, `target_groups`, etc.) se crean
+automáticamente cuando ejecutas `init_db.py`, por lo que no requiere una
+configuración extra.
+
+Para mantener activo el envío automático ejecuta `advertising_cron.py` de forma
+periódica o déjalo en segundo plano mediante un servicio `systemd` o una
+entrada de `cron`:
 
 ```bash
 python advertising_cron.py
@@ -303,8 +354,8 @@ necesitas modificar rutas manualmente. Asegúrate de lanzarlo desde la carpeta
 del proyecto (o con el directorio de trabajo apuntando allí) para que pueda
 encontrar la base de datos.
 
-Desde el panel de administración aparecerá una nueva opción **📢 Marketing**
-con comandos para gestionar campañas:
+Desde el panel de administración el **📣 Panel de Marketing** ofrece comandos
+para gestionar campañas:
 
 - `🎯 Nueva campaña` para registrar una campaña.
 - `🛒 Campaña de producto` para crear una campaña basada en un producto existente.
