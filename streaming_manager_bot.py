@@ -12,14 +12,16 @@ class StreamingManagerBot:
         self.bot = bot_instance
 
     def route_callback(self, callback_data, chat_id):
+        """Dispatch callbacks to the appropriate Telethon helper."""
+
         if callback_data.startswith("telethon_dashboard_"):
             store_id = int(callback_data.rsplit("_", 1)[1])
             telethon_dashboard.show_telethon_dashboard(chat_id, store_id)
         elif callback_data.startswith("telethon_detect_"):
             store_id = int(callback_data.rsplit("_", 1)[1])
             summary = telethon_manager.detect_topics(store_id)
-            key = telebot.types.InlineKeyboardMarkup()
-            key.add(
+            markup = telebot.types.InlineKeyboardMarkup()
+            markup.add(
                 telebot.types.InlineKeyboardButton(
                     text="Seleccionar todos",
                     callback_data=f"start_auto_detection_{store_id}_all",
@@ -29,7 +31,7 @@ class StreamingManagerBot:
                     callback_data=f"start_auto_detection_{store_id}_custom",
                 ),
             )
-            send_long_message(self.bot, chat_id, summary, markup=key)
+            send_long_message(self.bot, chat_id, summary, markup=markup)
         elif callback_data.startswith("start_auto_detection_"):
             parts = callback_data.split("_")
             store_id = int(parts[3])
