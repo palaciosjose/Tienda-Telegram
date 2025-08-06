@@ -5,6 +5,7 @@ import telethon_config
 import telethon_manager
 import datetime
 from utils.ascii_chart import sparkline
+from business_intelligence import generate_bi_report
 from advertising_system.admin_integration import (
     manager as advertising,
     set_shop_id,
@@ -309,6 +310,9 @@ def show_superadmin_dashboard(chat_id, user_id):
         telebot.types.InlineKeyboardButton(
             text='Config Telethon global', callback_data='admin_telethon_config'
         ),
+        telebot.types.InlineKeyboardButton(
+            text='\U0001F4CA BI Reporte', callback_data='admin_bi_report'
+        ),
     )
 
     MAX = 4096
@@ -324,6 +328,21 @@ def show_superadmin_dashboard(chat_id, user_id):
 nav_system.register(
     "select_store_main",
     lambda chat_id, uid: show_superadmin_dashboard(chat_id, uid),
+)
+
+
+def show_bi_report(chat_id, user_id):
+    """Send the Business Intelligence report to the super admin."""
+    if user_id != config.admin_id:
+        bot.send_message(chat_id, '❌ Acceso restringido.')
+        return
+    report = generate_bi_report()
+    bot.send_message(chat_id, report, parse_mode='Markdown')
+
+
+nav_system.register(
+    'admin_bi_report',
+    lambda chat_id, uid: show_bi_report(chat_id, uid),
 )
 
 
