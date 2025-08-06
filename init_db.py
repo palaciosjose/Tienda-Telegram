@@ -4,6 +4,37 @@
 import sqlite3
 import os
 
+
+def _create_auxiliary_tables(cursor):
+    """Create auxiliary tables for topics, global configuration and logs."""
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS store_topics (
+            store_id INTEGER,
+            group_id TEXT,
+            group_name TEXT,
+            topic_id INTEGER,
+            topic_name TEXT
+        )
+        '''
+    )
+    cursor.execute(
+        '''CREATE TABLE IF NOT EXISTS global_config (key TEXT PRIMARY KEY, value TEXT)'''
+    )
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS unified_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            level TEXT,
+            message TEXT,
+            store_id INTEGER
+        )
+        '''
+    )
+    print("✓ Tablas 'store_topics', 'global_config' y 'unified_logs' creadas")
+
+
 def create_database():
     print("Creando estructura de directorios...")
     
@@ -251,35 +282,7 @@ def create_database():
     ''')
     print("✓ Tabla 'rate_limit_logs' creada")
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS store_topics (
-            store_id INTEGER,
-            group_id TEXT,
-            group_name TEXT,
-            topic_id INTEGER,
-            topic_name TEXT
-        )
-    ''')
-    print("✓ Tabla 'store_topics' creada")
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS global_config (
-            key TEXT PRIMARY KEY,
-            value TEXT
-        )
-    ''')
-    print("✓ Tabla 'global_config' creada")
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS unified_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-            level TEXT,
-            message TEXT,
-            store_id INTEGER
-        )
-    ''')
-    print("✓ Tabla 'unified_logs' creada")
+    _create_auxiliary_tables(cursor)
 
     # Crear tabla para datos de PayPal
     cursor.execute('''
