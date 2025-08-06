@@ -2,6 +2,7 @@ import telebot
 from bot_instance import bot
 import telethon_manager
 from navigation import nav_system
+from utils.message_chunker import send_long_message
 
 
 def show_telethon_dashboard(chat_id, store_id):
@@ -22,4 +23,4 @@ def show_telethon_dashboard(chat_id, store_id):
     key = nav_system.create_universal_navigation(
         chat_id, f"telethon_dashboard_{store_id}", quick_actions
     )
-    bot.send_message(chat_id, "\n".join(lines), reply_markup=key, parse_mode="Markdown")
+    send_long_message(bot, chat_id, "\n".join(lines), markup=key, parse_mode="Markdown")

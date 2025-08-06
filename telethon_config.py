@@ -4,13 +4,7 @@ import db
 import telethon_manager
 import files
 import shelve
-
-
-def _send_chunks(chat_id, text, **kw):
-    """Send a message ensuring it stays below Telegram's 4096 char limit."""
-    MAX = 4096
-    for i in range(0, len(text), MAX):
-        bot.send_message(chat_id, text[i : i + MAX], **kw)
+from utils.message_chunker import send_long_message
 
 
 def show_global_telethon_config(chat_id, user_id):
@@ -22,9 +16,7 @@ def show_global_telethon_config(chat_id, user_id):
     if len(lines) == 1:
         lines.append("Sin configuración")
     message = "\n".join(lines)
-    MAX = 4096
-    for i in range(0, len(message), MAX):
-        bot.send_message(chat_id, message[i:i+MAX], parse_mode="Markdown")
+    send_long_message(bot, chat_id, message, parse_mode="Markdown")
     key = telebot.types.InlineKeyboardMarkup()
     key.add(
         telebot.types.InlineKeyboardButton(
@@ -34,7 +26,7 @@ def show_global_telethon_config(chat_id, user_id):
             text="Generar reporte", callback_data="global_generate_report"
         ),
     )
-    bot.send_message(chat_id, "Acciones disponibles:", reply_markup=key)
+    send_long_message(bot, chat_id, "Acciones disponibles:", markup=key)
 
 
 def global_telethon_config(callback_data, chat_id, user_id=None):
@@ -44,9 +36,9 @@ def global_telethon_config(callback_data, chat_id, user_id=None):
     if callback_data == "admin_telethon_config":
         show_global_telethon_config(chat_id, user_id)
     elif callback_data == "global_restart_daemons":
-        bot.send_message(chat_id, "♻️ Daemons reiniciados")
+        send_long_message(bot, chat_id, "♻️ Daemons reiniciados")
     elif callback_data == "global_generate_report":
-        bot.send_message(chat_id, "📄 Reporte generado")
+        send_long_message(bot, chat_id, "📄 Reporte generado")
 
 
 def start_telethon_wizard(chat_id, store_id, action="next"):
@@ -61,7 +53,7 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
             "4. Prueba de envío.\n"
             "5. Activación."
         )
-        _send_chunks(chat_id, guide)
+        send_long_message(bot, chat_id, guide)
         return
 
     with shelve.open(files.sost_bd) as bd:
@@ -74,7 +66,8 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
 
         if step == 0:
             if not status.get("api_id") or not status.get("api_hash"):
-                _send_chunks(
+                send_long_message(
+                    bot,
                     chat_id,
                     "Faltan credenciales de Telethon. Configura API ID y API HASH primero.",
                 )
@@ -88,7 +81,12 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
                     text="⬅️ Atrás", callback_data=f"telethon_prev_{store_id}"
                 )
             )
-            _send_chunks(chat_id, "Credenciales OK. Proporciona el ID del grupo bridge.", reply_markup=markup)
+            send_long_message(
+                bot,
+                chat_id,
+                "Credenciales OK. Proporciona el ID del grupo bridge.",
+                markup=markup,
+            )
             return
 
         if step == 1:
@@ -101,7 +99,12 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
                     text="⬅️ Atrás", callback_data=f"telethon_prev_{store_id}"
                 )
             )
-            _send_chunks(chat_id, "Detección de topics completada. Ejecuta una prueba.", reply_markup=markup)
+            send_long_message(
+                bot,
+                chat_id,
+                "Detección de topics completada. Ejecuta una prueba.",
+                markup=markup,
+            )
             return
 
         if step == 2:
@@ -114,12 +117,17 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
                     text="⬅️ Atrás", callback_data=f"telethon_prev_{store_id}"
                 )
             )
-            _send_chunks(chat_id, "Prueba enviada. Activa el servicio.", reply_markup=markup)
+            send_long_message(
+                bot,
+                chat_id,
+                "Prueba enviada. Activa el servicio.",
+                markup=markup,
+            )
             return
 
         if step == 3:
             telethon_manager.restart_daemon(store_id)
-            _send_chunks(chat_id, "Telethon activado correctamente.")
+            send_long_message(bot, chat_id, "Telethon activado correctamente.")
             del bd[key]
 
 
@@ -146,5 +154,5 @@ def show_telethon_wizard_entry(chat_id, store_id):
             text="📖 Guía", callback_data="telethon_help"
         ),
     )
-    bot.send_message(chat_id, "Configuración de Telethon", reply_markup=key)
+    send_long_message(bot, chat_id, "Configuración de Telethon", markup=key)
 
