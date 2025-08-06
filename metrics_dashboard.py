@@ -7,7 +7,9 @@ from utils.message_chunker import send_long_message
 def show_global_metrics(chat_id, user_id):
     """Display global ROI, ranking, alerts and Telethon state."""
     if db.get_user_role(user_id) != 'superadmin':
-        bot.send_message(chat_id, '❌ Acceso restringido.')
+        # Ensure even short warnings go through the chunker for
+        # consistent behaviour across the codebase.
+        send_long_message(bot, chat_id, '❌ Acceso restringido.')
         return
 
     metrics = db.get_global_metrics()
