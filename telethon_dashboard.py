@@ -10,8 +10,10 @@ def show_telethon_dashboard(chat_id, store_id):
 
     The stats are pulled from :mod:`telethon_manager` and summarize whether
     the Telethon daemon is active for the given store and how many messages
-    were sent. The message also includes quick action buttons for detecting
-    topics, testing a message send and restarting the daemon.
+    were sent.  Navigation relies on :func:`nav_system.create_universal_navigation`
+    which injects the standard "Inicio" and "❌ Cancelar" buttons alongside the
+    provided quick actions for detecting topics, testing a message send and
+    restarting the daemon.
     """
 
     stats = telethon_manager.get_stats(store_id) or {}
