@@ -15,6 +15,7 @@ def show_global_metrics(chat_id, user_id):
         # Ensure even short warnings go through the chunker for
         # consistent behaviour across the codebase.
         send_long_message(bot, chat_id, '❌ Acceso restringido.')
+        db.log_event('WARNING', f'user {user_id} denied global_metrics')
         return
 
     metrics = db.get_global_metrics()
