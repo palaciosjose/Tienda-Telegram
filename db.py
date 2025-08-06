@@ -151,6 +151,62 @@ def _ensure_global_config_table(cur):
     )
 
 
+def _ensure_store_topics_table(cur):
+    """Ensure the store_topics table exists."""
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS store_topics (
+            store_id INTEGER,
+            group_id TEXT,
+            group_name TEXT,
+            topic_id INTEGER,
+            topic_name TEXT
+        )
+        """
+    )
+
+
+def _ensure_unified_logs_table(cur):
+    """Ensure the unified_logs table exists."""
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS unified_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            level TEXT,
+            message TEXT,
+            store_id INTEGER
+        )
+        """
+    )
+
+
+def _ensure_shop_extra_columns(cur):
+    """Ensure extended columns exist in shops table."""
+    cur.execute("PRAGMA table_info(shops)")
+    cols = [c[1] for c in cur.fetchall()]
+    if "telethon_enabled" not in cols:
+        cur.execute("ALTER TABLE shops ADD COLUMN telethon_enabled INTEGER DEFAULT 0")
+    if "telethon_api_id" not in cols:
+        cur.execute("ALTER TABLE shops ADD COLUMN telethon_api_id TEXT")
+    if "telethon_api_hash" not in cols:
+        cur.execute("ALTER TABLE shops ADD COLUMN telethon_api_hash TEXT")
+    if "telethon_phone" not in cols:
+        cur.execute("ALTER TABLE shops ADD COLUMN telethon_phone TEXT")
+    if "telethon_bridge_group" not in cols:
+        cur.execute("ALTER TABLE shops ADD COLUMN telethon_bridge_group TEXT")
+    if "telethon_daemon_status" not in cols:
+        cur.execute("ALTER TABLE shops ADD COLUMN telethon_daemon_status TEXT")
+    if "telethon_last_activity" not in cols:
+        cur.execute("ALTER TABLE shops ADD COLUMN telethon_last_activity TEXT")
+    if "max_campaigns_daily" not in cols:
+        cur.execute("ALTER TABLE shops ADD COLUMN max_campaigns_daily INTEGER DEFAULT 0")
+    if "current_campaigns_today" not in cols:
+        cur.execute(
+            "ALTER TABLE shops ADD COLUMN current_campaigns_today INTEGER DEFAULT 0"
+        )
+
+
 def get_global_telethon_status():
     """Return all key/value pairs from the global configuration table."""
     con = get_db_connection()
@@ -181,17 +237,7 @@ def save_detected_topics(store_id, topics):
 
     con = get_db_connection()
     cur = con.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS store_topics (
-            store_id INTEGER,
-            group_id TEXT,
-            group_name TEXT,
-            topic_id INTEGER,
-            topic_name TEXT
-        )
-        """
-    )
+    _ensure_store_topics_table(cur)
     cur.execute("DELETE FROM store_topics WHERE store_id=?", (store_id,))
     cur.executemany(
         "INSERT INTO store_topics (store_id, group_id, group_name, topic_id, topic_name) VALUES (?, ?, ?, ?, ?)",
@@ -207,3 +253,122 @@ def save_detected_topics(store_id, topics):
         ],
     )
     con.commit()
+
+
+def get_store_topics(store_id):
+    """Return stored topics for a given store."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_store_topics_table(cur)
+    cur.execute(
+        "SELECT group_id, group_name, topic_id, topic_name FROM store_topics WHERE store_id=?",
+        (store_id,),
+    )
+    rows = cur.fetchall()
+    return [
+        {
+            "group_id": r[0],
+            "group_name": r[1],
+            "topic_id": r[2],
+            "topic_name": r[3],
+        }
+        for r in rows
+    ]
+
+
+def set_daily_campaign_limit(shop_id, limit):
+    """Set the maximum number of campaigns per day for a shop."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_shop_extra_columns(cur)
+    cur.execute(
+        "UPDATE shops SET max_campaigns_daily=?, current_campaigns_today=0 WHERE id=?",
+        (int(limit), shop_id),
+    )
+    con.commit()
+
+
+def get_daily_campaign_counts(shop_id):
+    """Return max and current daily campaign counts for a shop."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_shop_extra_columns(cur)
+    cur.execute(
+        "SELECT max_campaigns_daily, current_campaigns_today FROM shops WHERE id=?",
+        (shop_id,),
+    )
+    row = cur.fetchone()
+    if row:
+        return {"max": row[0] or 0, "current": row[1] or 0}
+    return {"max": 0, "current": 0}
+
+
+def register_campaign_send(shop_id):
+    """Increment today's campaign count if limit allows."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_shop_extra_columns(cur)
+    counts = get_daily_campaign_counts(shop_id)
+    if counts["max"] and counts["current"] >= counts["max"]:
+        return False
+    cur.execute(
+        "UPDATE shops SET current_campaigns_today = current_campaigns_today + 1 WHERE id=?",
+        (shop_id,),
+    )
+    con.commit()
+    return True
+
+
+def reset_daily_campaigns(shop_id=None):
+    """Reset the daily campaign counters."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_shop_extra_columns(cur)
+    if shop_id is None:
+        cur.execute("UPDATE shops SET current_campaigns_today=0")
+    else:
+        cur.execute(
+            "UPDATE shops SET current_campaigns_today=0 WHERE id=?", (shop_id,)
+        )
+    con.commit()
+
+
+def log_event(level, message, store_id=None):
+    """Insert an entry into unified_logs."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_unified_logs_table(cur)
+    cur.execute(
+        "INSERT INTO unified_logs (level, message, store_id) VALUES (?, ?, ?)",
+        (level, message, store_id),
+    )
+    con.commit()
+
+
+def get_unified_logs(limit=100, store_id=None):
+    """Retrieve logs from unified_logs table."""
+    con = get_db_connection()
+    cur = con.cursor()
+    _ensure_unified_logs_table(cur)
+    if store_id is None:
+        cur.execute(
+            "SELECT id, timestamp, level, message, store_id FROM unified_logs ORDER BY id DESC LIMIT ?",
+            (limit,),
+        )
+    else:
+        cur.execute(
+            "SELECT id, timestamp, level, message, store_id FROM unified_logs WHERE store_id=? ORDER BY id DESC LIMIT ?",
+            (store_id, limit),
+        )
+    rows = cur.fetchall()
+    return [
+        {
+            "id": r[0],
+            "timestamp": r[1],
+            "level": r[2],
+            "message": r[3],
+            "store_id": r[4],
+        }
+        for r in rows
+    ]
+

@@ -39,7 +39,16 @@ def create_database():
             button1_url TEXT,
             button2_text TEXT,
             button2_url TEXT,
-            campaign_limit INTEGER DEFAULT 0
+            campaign_limit INTEGER DEFAULT 0,
+            telethon_enabled INTEGER DEFAULT 0,
+            telethon_api_id TEXT,
+            telethon_api_hash TEXT,
+            telethon_phone TEXT,
+            telethon_bridge_group TEXT,
+            telethon_daemon_status TEXT,
+            telethon_last_activity TEXT,
+            max_campaigns_daily INTEGER DEFAULT 0,
+            current_campaigns_today INTEGER DEFAULT 0
         )
     ''')
     print("✓ Tabla 'shops' creada")
@@ -241,6 +250,36 @@ def create_database():
         )
     ''')
     print("✓ Tabla 'rate_limit_logs' creada")
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS store_topics (
+            store_id INTEGER,
+            group_id TEXT,
+            group_name TEXT,
+            topic_id INTEGER,
+            topic_name TEXT
+        )
+    ''')
+    print("✓ Tabla 'store_topics' creada")
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS global_config (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
+    print("✓ Tabla 'global_config' creada")
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS unified_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            level TEXT,
+            message TEXT,
+            store_id INTEGER
+        )
+    ''')
+    print("✓ Tabla 'unified_logs' creada")
 
     # Crear tabla para datos de PayPal
     cursor.execute('''

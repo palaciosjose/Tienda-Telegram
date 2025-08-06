@@ -1,5 +1,8 @@
 import importlib
 import sys
+import os
+
+sys.path.append(os.getcwd())
 
 from tests.test_categories import setup_dop
 
@@ -33,4 +36,19 @@ def test_campaign_limit_enforced(monkeypatch, tmp_path):
         {"name": "C", "message_text": "z", "created_by": 1, "shop_id": shop_id}
     )
     assert ok3
+
+
+def test_daily_campaign_limit(monkeypatch, tmp_path):
+    dop = setup_dop(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    shop_id = dop.create_shop("Shop1", admin_id=2)
+
+    import db
+
+    db.set_daily_campaign_limit(shop_id, 2)
+    assert db.register_campaign_send(shop_id)
+    assert db.register_campaign_send(shop_id)
+    assert not db.register_campaign_send(shop_id)
+    db.reset_daily_campaigns(shop_id)
+    assert db.register_campaign_send(shop_id)
 
