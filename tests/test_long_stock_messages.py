@@ -1,3 +1,9 @@
+import pathlib
+import sys
+
+# Ensure the repository root is on the import path so ``utils`` can be resolved
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+
 from utils.message_chunker import send_long_message
 
 

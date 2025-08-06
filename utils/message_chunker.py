@@ -2,12 +2,13 @@ import math
 
 
 def send_long_message(bot, chat_id, text, markup=None, parse_mode=None, **kwargs):
-    """Send ``text`` split into 4096‑character chunks.
+    """Send ``text`` respecting Telegram's 4096‑character message limit.
 
-    Each chunk is prefixed with a simple ``"1/3"`` style header when the
-    message spans multiple parts.  Any ``reply_markup`` is only attached to the
-    first chunk.  Additional keyword arguments are forwarded to
-    :meth:`bot.send_message` allowing callers to specify parameters such as
+    The helper transparently paginates long messages.  When more than one chunk
+    is required a simple ``"1/N"`` header is prepended to each part and any
+    ``reply_markup`` is attached only to the first message to avoid duplicated
+    keyboards.  Extra keyword arguments are forwarded to
+    :meth:`bot.send_message` so callers can specify flags like
     ``disable_web_page_preview``.
     """
     if text is None:
