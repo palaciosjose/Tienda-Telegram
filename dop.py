@@ -83,6 +83,36 @@ def ensure_database_schema():
             cursor.execute("ALTER TABLE shops ADD COLUMN button2_url TEXT")
         if 'campaign_limit' not in shop_cols:
             cursor.execute("ALTER TABLE shops ADD COLUMN campaign_limit INTEGER DEFAULT 0")
+        if 'telethon_enabled' not in shop_cols:
+            cursor.execute(
+                "ALTER TABLE shops ADD COLUMN telethon_enabled INTEGER DEFAULT 0"
+            )
+        if 'telethon_api_id' not in shop_cols:
+            cursor.execute("ALTER TABLE shops ADD COLUMN telethon_api_id TEXT")
+        if 'telethon_api_hash' not in shop_cols:
+            cursor.execute("ALTER TABLE shops ADD COLUMN telethon_api_hash TEXT")
+        if 'telethon_phone' not in shop_cols:
+            cursor.execute("ALTER TABLE shops ADD COLUMN telethon_phone TEXT")
+        if 'telethon_bridge_group' not in shop_cols:
+            cursor.execute(
+                "ALTER TABLE shops ADD COLUMN telethon_bridge_group TEXT"
+            )
+        if 'telethon_daemon_status' not in shop_cols:
+            cursor.execute(
+                "ALTER TABLE shops ADD COLUMN telethon_daemon_status TEXT"
+            )
+        if 'telethon_last_activity' not in shop_cols:
+            cursor.execute(
+                "ALTER TABLE shops ADD COLUMN telethon_last_activity TEXT"
+            )
+        if 'max_campaigns_daily' not in shop_cols:
+            cursor.execute(
+                "ALTER TABLE shops ADD COLUMN max_campaigns_daily INTEGER DEFAULT 0"
+            )
+        if 'current_campaigns_today' not in shop_cols:
+            cursor.execute(
+                "ALTER TABLE shops ADD COLUMN current_campaigns_today INTEGER DEFAULT 0"
+            )
 
         cursor.execute(
             "CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, shop_id INTEGER)"
@@ -277,6 +307,34 @@ def ensure_database_schema():
                 discount_multiplier REAL DEFAULT 1.5,
                 show_fake_price INTEGER DEFAULT 1,
                 shop_id INTEGER UNIQUE
+            )
+            """
+        )
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS store_topics (
+                store_id INTEGER,
+                group_id TEXT,
+                group_name TEXT,
+                topic_id INTEGER,
+                topic_name TEXT
+            )
+            """
+        )
+
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS global_config (key TEXT PRIMARY KEY, value TEXT)"
+        )
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS unified_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+                level TEXT,
+                message TEXT,
+                store_id INTEGER
             )
             """
         )
