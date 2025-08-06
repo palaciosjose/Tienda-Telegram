@@ -6,7 +6,11 @@ import os
 
 
 def _create_auxiliary_tables(cursor):
-    """Create auxiliary tables for topics, global configuration and logs."""
+    """Create auxiliary tables for topics, global configuration and logs.
+
+    The tables are created with ``IF NOT EXISTS`` so the function can be
+    executed multiple times without affecting existing installations.
+    """
     cursor.execute(
         '''
         CREATE TABLE IF NOT EXISTS store_topics (

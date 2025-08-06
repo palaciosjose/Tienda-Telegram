@@ -388,13 +388,21 @@ def get_daily_campaign_counts(shop_id):
 
 
 def register_campaign_send(shop_id):
-    """Increment today's campaign count if limit allows."""
+    """Increment today's campaign count if the shop has not reached its limit."""
     con = get_db_connection()
     cur = con.cursor()
     _ensure_shop_extra_columns(cur)
-    counts = get_daily_campaign_counts(shop_id)
-    if counts["max"] and counts["current"] >= counts["max"]:
+
+    cur.execute(
+        "SELECT max_campaigns_daily, current_campaigns_today FROM shops WHERE id=?",
+        (shop_id,),
+    )
+    row = cur.fetchone() or (0, 0)
+    max_daily = row[0] or 0
+    current = row[1] or 0
+    if max_daily and current >= max_daily:
         return False
+
     cur.execute(
         "UPDATE shops SET current_campaigns_today = current_campaigns_today + 1 WHERE id=?",
         (shop_id,),
