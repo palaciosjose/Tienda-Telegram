@@ -55,7 +55,7 @@ def show_global_metrics(chat_id, user_id):
         [
             ('🔄 Actualizar', 'global_metrics'),
             ('📊 Reportes', 'global_metrics'),
-            ('⚠️ Alertas', 'global_metrics'),
+            ('⚠️ Alertas', 'global_alerts'),
         ],
     )
     send_long_message(bot, chat_id, '\n'.join(lines), markup=key, parse_mode='Markdown')
@@ -67,3 +67,32 @@ def _global_metrics_nav(chat_id, _store_id=None):
 
 
 nav_system.register('global_metrics', _global_metrics_nav)
+
+
+def show_pending_alerts(chat_id, user_id):
+    """Display and clear pending alerts for the SuperAdmin."""
+    if db.get_user_role(user_id) != 'superadmin':
+        send_long_message(bot, chat_id, '❌ Acceso restringido.')
+        db.log_event('WARNING', f'user {user_id} denied alerts_view')
+        return
+
+    alerts = db.get_alerts(limit=50)
+    lines = ['⚠️ *Alertas Pendientes:*']
+    if alerts:
+        lines.extend(f"{a['level']}: {a['message']}" for a in alerts)
+    else:
+        lines.append('Ninguna')
+    db.clear_alerts()
+    key = nav_system.create_universal_navigation(
+        chat_id,
+        'global_alerts',
+        [('⬅️ Volver', 'global_metrics')],
+    )
+    send_long_message(bot, chat_id, '\n'.join(lines), markup=key, parse_mode='Markdown')
+
+
+def _global_alerts_nav(chat_id, _store_id=None):
+    show_pending_alerts(chat_id, chat_id)
+
+
+nav_system.register('global_alerts', _global_alerts_nav)
