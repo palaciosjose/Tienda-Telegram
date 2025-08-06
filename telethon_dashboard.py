@@ -27,9 +27,9 @@ def show_telethon_dashboard(chat_id, store_id):
     ]
 
     quick_actions = [
-        ("Detectar topics", f"telethon_detect_{store_id}"),
-        ("Probar envío", f"telethon_test_{store_id}"),
-        ("Reiniciar daemon", f"telethon_restart_{store_id}"),
+        ("🧵 Topics", f"telethon_detect_{store_id}"),
+        ("✉️ Prueba", f"telethon_test_{store_id}"),
+        ("♻️ Reiniciar", f"telethon_restart_{store_id}"),
     ]
 
     markup = nav_system.create_universal_navigation(
