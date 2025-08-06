@@ -31,3 +31,18 @@ def get_stats(shop_id):
     except Exception:
         return stats
     return stats
+
+
+def detect_topics(shop_id):
+    """Placeholder to trigger topic detection for a shop."""
+    return True
+
+
+def test_send(shop_id):
+    """Placeholder to perform a test send using telethon."""
+    return True
+
+
+def restart_daemon(shop_id):
+    """Placeholder to restart the telethon daemon for a shop."""
+    return True

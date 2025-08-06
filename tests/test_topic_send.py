@@ -268,3 +268,67 @@ def test_dashboard_has_telethon_button(monkeypatch, tmp_path):
     adminka.show_store_dashboard_unified(1, sid, 'S1')
     btn_texts = [b.text for b in calls[0].buttons]
     assert any('Telethon' in t for t in btn_texts)
+
+
+def test_show_telethon_dashboard_buttons(monkeypatch):
+    calls = []
+
+    class Bot:
+        def send_message(self, chat_id, text=None, reply_markup=None, **kw):
+            calls.append(reply_markup)
+
+    class Markup:
+        def __init__(self):
+            self.buttons = []
+
+        def add(self, *btns):
+            self.buttons.extend(btns)
+
+    class Button:
+        def __init__(self, text, callback_data=None):
+            self.text = text
+            self.callback_data = callback_data
+
+    telebot_stub = types.SimpleNamespace(
+        TeleBot=lambda *a, **k: Bot(),
+        types=types.SimpleNamespace(InlineKeyboardMarkup=Markup, InlineKeyboardButton=Button),
+    )
+    monkeypatch.setitem(sys.modules, 'telebot', telebot_stub)
+    bot = telebot_stub.TeleBot()
+    monkeypatch.setitem(sys.modules, 'bot_instance', types.SimpleNamespace(bot=bot))
+
+    import importlib, telethon_dashboard
+    importlib.reload(telethon_dashboard)
+    monkeypatch.setattr(telethon_dashboard.telethon_manager, 'get_stats', lambda s: {'active': True, 'sent': 0})
+
+    telethon_dashboard.show_telethon_dashboard(1, 5)
+    markup = calls[0]
+    cb_data = {b.callback_data for b in markup.buttons}
+    assert f'telethon_detect_5' in cb_data
+    assert f'telethon_test_5' in cb_data
+
+
+def test_streaming_manager_routes_telethon_actions(monkeypatch):
+    actions = []
+
+    import telethon_manager
+    monkeypatch.setattr(telethon_manager, 'detect_topics', lambda sid: actions.append(('detect', sid)))
+    monkeypatch.setattr(telethon_manager, 'test_send', lambda sid: actions.append(('test', sid)))
+
+    import telethon_dashboard
+    monkeypatch.setattr(telethon_dashboard, 'show_telethon_dashboard', lambda chat_id, sid: actions.append(('dash', chat_id, sid)))
+
+    from streaming_manager_bot import StreamingManagerBot
+
+    class Bot:
+        def send_message(self, chat_id, text, **kw):
+            actions.append(('msg', chat_id, text))
+
+    sm = StreamingManagerBot(Bot())
+    sm.route_callback('telethon_dashboard_3', 9)
+    sm.route_callback('telethon_detect_3', 9)
+    sm.route_callback('telethon_test_3', 9)
+
+    assert ('dash', 9, 3) in actions
+    assert ('detect', 3) in actions
+    assert ('test', 3) in actions
