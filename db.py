@@ -283,6 +283,52 @@ def get_store_topics(store_id):
     ]
 
 
+def get_sales_timeseries(store_id=None, days=7):
+    """Return daily sales totals for the last ``days`` days."""
+    con = get_db_connection()
+    cur = con.cursor()
+    params = []
+    query = (
+        "SELECT substr(timestamp,1,10) AS day, COALESCE(SUM(price),0) AS total "
+        "FROM purchases"
+    )
+    if store_id is not None:
+        query += " WHERE shop_id=?"
+        params.append(store_id)
+    query += " GROUP BY day ORDER BY day DESC LIMIT ?"
+    params.append(days)
+    try:
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        rows.reverse()
+        return [{"day": r[0], "total": r[1]} for r in rows]
+    except Exception:
+        return []
+
+
+def get_campaign_timeseries(store_id=None, days=7):
+    """Return daily campaign send counts for the last ``days`` days."""
+    con = get_db_connection()
+    cur = con.cursor()
+    params = []
+    query = (
+        "SELECT substr(sent_date,1,10) AS day, COUNT(*) "
+        "FROM send_logs"
+    )
+    if store_id is not None:
+        query += " WHERE shop_id=?"
+        params.append(store_id)
+    query += " GROUP BY day ORDER BY day DESC LIMIT ?"
+    params.append(days)
+    try:
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        rows.reverse()
+        return [{"day": r[0], "count": r[1]} for r in rows]
+    except Exception:
+        return []
+
+
 def get_global_metrics():
     """Return aggregated metrics across all shops.
 

@@ -2,6 +2,7 @@ import db
 from bot_instance import bot
 from navigation import nav_system
 from utils.message_chunker import send_long_message
+from utils.ascii_chart import sparkline
 
 
 def show_global_metrics(chat_id, user_id):
@@ -20,14 +21,24 @@ def show_global_metrics(chat_id, user_id):
 
     metrics = db.get_global_metrics()
     alerts = db.get_alerts()
+    sales_ts = db.get_sales_timeseries()
+    camp_ts = db.get_campaign_timeseries()
 
     lines = [
         '🌐 *Métricas Globales*',
         f"ROI: {metrics.get('roi', 0)}",
         f"Telethon: {metrics.get('telethon_active', 0)}/{metrics.get('telethon_total', 0)} activos",
-        '',
-        '*Ranking:*',
     ]
+    if sales_ts:
+        vals = [s['total'] for s in sales_ts]
+        delta = vals[-1] - (vals[-2] if len(vals) > 1 else 0)
+        lines.append(f"💹 Ventas 7d: {sparkline(vals)} ({delta:+})")
+    if camp_ts:
+        vals = [c['count'] for c in camp_ts]
+        delta = vals[-1] - (vals[-2] if len(vals) > 1 else 0)
+        lines.append(f"📣 Campañas 7d: {sparkline(vals)} ({delta:+})")
+
+    lines.extend(['', '*Ranking:*'])
     for idx, r in enumerate(metrics.get('ranking', []), 1):
         lines.append(f"{idx}. {r.get('name')} - ${r.get('total')}")
 
