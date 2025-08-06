@@ -6,6 +6,10 @@ import json
 import os
 from pathlib import Path
 
+root = Path(__file__).resolve().parents[1]
+if str(root) not in sys.path:
+    sys.path.insert(0, str(root))
+
 # Minimal database schema copied from advertising tests
 CREATE_CAMPAIGNS_TABLE = """CREATE TABLE IF NOT EXISTS campaigns (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -316,8 +320,13 @@ def test_streaming_manager_routes_telethon_actions(monkeypatch):
     monkeypatch.setattr(telethon_manager, 'test_send', lambda sid: actions.append(('test', sid)))
 
     import telethon_dashboard
-    monkeypatch.setattr(telethon_dashboard, 'show_telethon_dashboard', lambda chat_id, sid: actions.append(('dash', chat_id, sid)))
+    monkeypatch.setattr(
+        telethon_dashboard,
+        'show_telethon_dashboard',
+        lambda chat_id, sid: actions.append(('dash', chat_id, sid)),
+    )
 
+    monkeypatch.setitem(sys.modules, 'bot_instance', types.SimpleNamespace(bot=None))
     from streaming_manager_bot import StreamingManagerBot
 
     class Bot:
@@ -332,3 +341,94 @@ def test_streaming_manager_routes_telethon_actions(monkeypatch):
     assert ('dash', 9, 3) in actions
     assert ('detect', 3) in actions
     assert ('test', 3) in actions
+
+
+def test_telethon_wizard_missing_credentials(monkeypatch, tmp_path):
+    messages = []
+
+    class Bot:
+        def send_message(self, chat_id, text, **kw):
+            messages.append(text)
+
+    class Markup:
+        def add(self, *a, **k):
+            pass
+
+    telebot_stub = types.SimpleNamespace(
+        types=types.SimpleNamespace(
+            InlineKeyboardMarkup=Markup,
+            InlineKeyboardButton=lambda *a, **k: None,
+        )
+    )
+    monkeypatch.setitem(sys.modules, 'telebot', telebot_stub)
+    dummy_bot = Bot()
+    monkeypatch.setitem(sys.modules, 'bot_instance', types.SimpleNamespace(bot=dummy_bot))
+
+    import importlib, telethon_config
+    importlib.reload(telethon_config)
+
+    monkeypatch.setattr(telethon_config.files, 'sost_bd', str(tmp_path / 'sost.bd'))
+    monkeypatch.setattr(telethon_config.db, 'get_global_telethon_status', lambda: {})
+
+    telethon_config.start_telethon_wizard(1, 2)
+    assert any('credenciales' in m.lower() for m in messages)
+
+
+def test_telethon_wizard_activation(monkeypatch, tmp_path):
+    messages = []
+
+    class Bot:
+        def send_message(self, chat_id, text, **kw):
+            messages.append(text)
+
+    class Markup:
+        def add(self, *a, **k):
+            pass
+
+    telebot_stub = types.SimpleNamespace(
+        types=types.SimpleNamespace(
+            InlineKeyboardMarkup=Markup,
+            InlineKeyboardButton=lambda *a, **k: None,
+        )
+    )
+    monkeypatch.setitem(sys.modules, 'telebot', telebot_stub)
+    dummy_bot = Bot()
+    monkeypatch.setitem(sys.modules, 'bot_instance', types.SimpleNamespace(bot=dummy_bot))
+
+    import importlib, telethon_config
+    importlib.reload(telethon_config)
+
+    monkeypatch.setattr(telethon_config.files, 'sost_bd', str(tmp_path / 'sost.bd'))
+    monkeypatch.setattr(
+        telethon_config.db,
+        'get_global_telethon_status',
+        lambda: {'api_id': '1', 'api_hash': '2'},
+    )
+
+    actions = []
+    monkeypatch.setattr(
+        telethon_config.telethon_manager,
+        'detect_topics',
+        lambda sid: actions.append(('detect', sid)),
+    )
+    monkeypatch.setattr(
+        telethon_config.telethon_manager,
+        'test_send',
+        lambda sid: actions.append(('test', sid)),
+    )
+    monkeypatch.setattr(
+        telethon_config.telethon_manager,
+        'restart_daemon',
+        lambda sid: actions.append(('activate', sid)),
+    )
+
+    telethon_config.start_telethon_wizard(1, 7)
+    telethon_config.start_telethon_wizard(1, 7)
+    telethon_config.start_telethon_wizard(1, 7)
+    telethon_config.start_telethon_wizard(1, 7)
+
+    assert actions == [('detect', 7), ('test', 7), ('activate', 7)]
+    import shelve
+
+    with shelve.open(telethon_config.files.sost_bd) as bd:
+        assert '1_telethon_step' not in bd
