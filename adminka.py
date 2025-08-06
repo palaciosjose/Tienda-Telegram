@@ -303,6 +303,13 @@ def show_superadmin_dashboard(chat_id, user_id):
             bot.send_message(chat_id, chunk)
 
 
+# Registrar el dashboard principal del superadmin en el sistema de navegación
+nav_system.register(
+    "select_store_main",
+    lambda chat_id, uid: show_superadmin_dashboard(chat_id, uid),
+)
+
+
 def finalize_product_campaign(chat_id, shop_id, product):
     """Crear campaña de producto usando la información almacenada."""
     info = dop.get_product_full_info(product, shop_id)

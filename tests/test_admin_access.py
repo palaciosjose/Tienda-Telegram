@@ -2,6 +2,7 @@ from tests.test_shop_info import setup_main
 import types
 import os
 import config
+from navigation import nav_system
 
 
 def test_adm_command_requires_permissions(monkeypatch, tmp_path):
@@ -137,3 +138,10 @@ def test_superadmin_dashboard_denied(monkeypatch, tmp_path):
                 messages.append(c[2].get('text', ''))
 
     assert any('Acceso restringido' in m for m in messages)
+
+
+def test_select_store_main_registered(monkeypatch, tmp_path):
+    import sys
+    sys.modules.pop('adminka', None)
+    setup_main(monkeypatch, tmp_path)
+    assert 'select_store_main' in nav_system._actions
