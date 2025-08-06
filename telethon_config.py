@@ -8,17 +8,30 @@ from utils.message_chunker import send_long_message
 
 
 def show_global_telethon_config(chat_id, user_id):
-    """Display global telethon configuration values."""
+    """Display global Telethon configuration and available actions.
+
+    Parameters
+    ----------
+    chat_id: int
+        Chat where the information will be sent.
+    user_id: int
+        Administrator requesting the information. Used to scope store
+        operations when actions are triggered via callbacks.
+    """
+
     status = db.get_global_telethon_status()
     lines = ["⚙️ *Configuración Global de Telethon*"]
-    for k, v in status.items():
-        lines.append(f"{k}: {v}")
+    for key, value in status.items():
+        lines.append(f"{key}: {value}")
     if len(lines) == 1:
         lines.append("Sin configuración")
-    message = "\n".join(lines)
-    send_long_message(bot, chat_id, message, parse_mode="Markdown")
-    key = telebot.types.InlineKeyboardMarkup()
-    key.add(
+
+    # Use send_long_message to respect the 4096 character limit.
+    send_long_message(bot, chat_id, "\n".join(lines), parse_mode="Markdown")
+
+    # Inline keyboard with available actions
+    markup = telebot.types.InlineKeyboardMarkup()
+    markup.add(
         telebot.types.InlineKeyboardButton(
             text="Reiniciar daemons", callback_data="global_restart_daemons"
         ),
@@ -26,19 +39,44 @@ def show_global_telethon_config(chat_id, user_id):
             text="Generar reporte", callback_data="global_generate_report"
         ),
     )
-    send_long_message(bot, chat_id, "Acciones disponibles:", markup=key)
+    send_long_message(bot, chat_id, "Acciones disponibles:", markup=markup)
 
 
 def global_telethon_config(callback_data, chat_id, user_id=None):
-    """Handle callbacks for global telethon configuration."""
+    """Handle callbacks for global Telethon configuration actions."""
+
     if user_id is None:
         user_id = chat_id
+
     if callback_data == "admin_telethon_config":
         show_global_telethon_config(chat_id, user_id)
-    elif callback_data == "global_restart_daemons":
-        send_long_message(bot, chat_id, "♻️ Daemons reiniciados")
+        return
+
+    stores = db.get_user_stores(user_id)
+
+    if callback_data == "global_restart_daemons":
+        lines = []
+        for store in stores:
+            try:
+                telethon_manager.restart_daemon(store["id"])
+                lines.append(f"Tienda {store['name']} ({store['id']}): reiniciada")
+            except Exception:
+                lines.append(f"Tienda {store['name']} ({store['id']}): error")
+        if not lines:
+            lines.append("No hay tiendas para reiniciar")
+        send_long_message(
+            bot, chat_id, "♻️ Daemons reiniciados\n" + "\n".join(lines)
+        )
     elif callback_data == "global_generate_report":
-        send_long_message(bot, chat_id, "📄 Reporte generado")
+        report_lines = ["📄 Reporte de Telethon"]
+        for store in stores:
+            stats = telethon_manager.get_stats(store["id"])
+            report_lines.append(
+                f"{store['name']} ({store['id']}): activo={stats['active']} enviados={stats['sent']}"
+            )
+        if len(report_lines) == 1:
+            report_lines.append("Sin datos disponibles")
+        send_long_message(bot, chat_id, "\n".join(report_lines))
 
 
 def start_telethon_wizard(chat_id, store_id, action="next"):
