@@ -219,3 +219,35 @@ def test_interface_regular_user(monkeypatch, tmp_path):
     # Ensure the message body reflects the same information
     sent_text = calls[-1][1][1]
     assert "S2" in sent_text and "🤖" in sent_text
+
+
+def test_long_store_name_truncated(monkeypatch, tmp_path):
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+
+    import files, sqlite3
+    conn = sqlite3.connect(files.main_db)
+    cur = conn.cursor()
+    cur.execute(
+        "CREATE TABLE platform_config (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT, config_data TEXT, is_active INTEGER, last_updated TEXT, shop_id INTEGER)"
+    )
+    long_name = "L" * 30
+    sid = dop.create_shop(long_name, admin_id=2)
+    cur.execute(
+        "INSERT INTO platform_config (platform, is_active, shop_id) VALUES ('telethon', 0, ?)",
+        (sid,),
+    )
+    conn.commit()
+    conn.close()
+
+    calls.clear()
+    main.show_main_interface(2, 2)
+    markup = calls[-1][2]["reply_markup"]
+    texts = [b.text for b in markup.buttons]
+    truncated = long_name[:20]
+    assert any(truncated in t for t in texts)
+    assert all(long_name not in t for t in texts)
+
+    sent_text = calls[-1][1][1]
+    assert truncated in sent_text
+    assert long_name not in sent_text
