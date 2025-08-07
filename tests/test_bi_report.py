@@ -34,3 +34,45 @@ def test_generate_bi_report_roi_and_ranking(monkeypatch):
     lines = [l for l in text.splitlines() if l and l[0].isdigit()]
     assert lines[0].startswith('1. Shop1')
     assert lines[1].startswith('2. Shop2')
+
+
+class DummyBot:
+    def __init__(self):
+        self.messages = []
+
+    def send_message(self, chat_id, text, reply_markup=None, parse_mode=None):
+        self.messages.append((chat_id, text, reply_markup))
+
+
+def test_show_bi_report_access(monkeypatch):
+    import adminka
+
+    dummy = DummyBot()
+    monkeypatch.setattr(adminka, 'bot', dummy)
+    monkeypatch.setattr(
+        adminka.nav_system,
+        'create_universal_navigation',
+        lambda c, p, quick_actions=None: None,
+    )
+    monkeypatch.setattr(adminka, 'generate_bi_report', lambda: 'REP')
+
+    events = []
+    monkeypatch.setattr(
+        adminka.db,
+        'log_event',
+        lambda level, message, store_id=None: events.append((level, message, store_id)),
+    )
+
+    # SuperAdmin access allowed
+    monkeypatch.setattr(adminka.db, 'get_user_role', lambda uid: 'superadmin')
+    adminka.show_bi_report(1, 1)
+    assert any('REP' in m[1] for m in dummy.messages)
+    assert events and events[-1][0] == 'INFO'
+
+    # Regular user denied
+    dummy.messages.clear()
+    events.clear()
+    monkeypatch.setattr(adminka.db, 'get_user_role', lambda uid: 'user')
+    adminka.show_bi_report(1, 2)
+    assert any('Solo SuperAdmin' in m[1] for m in dummy.messages)
+    assert events and events[-1][0] == 'WARNING'
