@@ -489,9 +489,9 @@ def inline(callback):
                 getattr(callback.from_user, 'first_name', ''),
             )
             return
-        if callback.data == 'select_store_main':
+        if callback.data in nav_system._actions:
             nav_system.handle(
-                'select_store_main', callback.message.chat.id, callback.from_user.id
+                callback.data, callback.message.chat.id, callback.from_user.id
             )
             return
         elif callback.data.startswith('SHOP_'):

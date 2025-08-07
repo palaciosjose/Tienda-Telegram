@@ -356,19 +356,55 @@ nav_system.register(
 )
 
 
+def admin_list_shops(chat_id, user_id):
+    """Mostrar listado detallado de tiendas para el superadmin."""
+    if user_id != config.admin_id:
+        key = nav_system.create_universal_navigation(
+            chat_id, "admin_list_shops_denied"
+        )
+        bot.send_message(chat_id, "❌ Acceso restringido.", reply_markup=key)
+        return
+    shops = dop.list_shops()
+    lines = ["*Tiendas registradas:*"]
+    for sid, aid, name in shops:
+        lines.append(f"{sid}. {name} (admin {aid})")
+    key = nav_system.create_universal_navigation(chat_id, "admin_list_shops")
+    bot.send_message(chat_id, "\n".join(lines), parse_mode="Markdown", reply_markup=key)
+
+
+def admin_create_shop(chat_id, user_id):
+    """Iniciar asistente para crear una nueva tienda."""
+    if user_id != config.admin_id:
+        key = nav_system.create_universal_navigation(
+            chat_id, "admin_create_shop_denied"
+        )
+        bot.send_message(chat_id, "❌ Acceso restringido.", reply_markup=key)
+        return
+    key = nav_system.create_universal_navigation(chat_id, "admin_create_shop_name")
+    bot.send_message(chat_id, "Ingrese el nombre de la nueva tienda:", reply_markup=key)
+    set_state(chat_id, 900, "main")
+
+
 def show_bi_report(chat_id, user_id):
     """Send the Business Intelligence report to the super admin."""
     if user_id != config.admin_id:
-        bot.send_message(chat_id, '❌ Acceso restringido.')
+        key = nav_system.create_universal_navigation(
+            chat_id, "admin_bi_report_denied"
+        )
+        bot.send_message(
+            chat_id,
+            "❌ Solo el superadministrador puede ver el reporte.",
+            reply_markup=key,
+        )
         return
     report = generate_bi_report()
-    bot.send_message(chat_id, report, parse_mode='Markdown')
+    key = nav_system.create_universal_navigation(chat_id, "admin_bi_report")
+    bot.send_message(chat_id, report, parse_mode="Markdown", reply_markup=key)
 
 
-nav_system.register(
-    'admin_bi_report',
-    lambda chat_id, uid: show_bi_report(chat_id, uid),
-)
+nav_system.register("admin_list_shops", lambda c, u: admin_list_shops(c, u))
+nav_system.register("admin_create_shop", lambda c, u: admin_create_shop(c, u))
+nav_system.register("admin_bi_report", lambda c, u: show_bi_report(c, u))
 
 
 def finalize_product_campaign(chat_id, shop_id, product):
@@ -3044,6 +3080,36 @@ def text_analytics(message_text, chat_id):
                 if os.path.exists(tmp):
                     os.remove(tmp)
                 show_marketing_menu(chat_id)
+
+        elif sost_num == 900:
+            name = message_text.strip()
+            with shelve.open(files.sost_bd) as bd:
+                bd[f"{chat_id}_new_shop_name"] = name
+                bd[str(chat_id)] = 901
+            key = nav_system.create_universal_navigation(
+                chat_id, "admin_create_shop_admin"
+            )
+            bot.send_message(
+                chat_id,
+                "Ingrese el ID del administrador para la tienda:",
+                reply_markup=key,
+            )
+
+        elif sost_num == 901:
+            try:
+                admin_id = int(message_text.strip())
+            except ValueError:
+                bot.send_message(chat_id, "❌ ID inválido. Intente nuevamente.")
+                return
+            with shelve.open(files.sost_bd) as bd:
+                name = bd.pop(f"{chat_id}_new_shop_name", "Tienda")
+                del bd[str(chat_id)]
+            shop_id = dop.create_shop(name, admin_id=admin_id)
+            bot.send_message(
+                chat_id,
+                f"✅ Tienda '{name}' creada con ID {shop_id}",
+            )
+            show_superadmin_dashboard(chat_id, config.admin_id)
 
 
 
