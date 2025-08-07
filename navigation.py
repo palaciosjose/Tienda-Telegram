@@ -50,6 +50,7 @@ class UnifiedNavigationSystem:
             quick_actions = []
 
         # Track visited page and actions for history/quick access.
+        has_history = bool(self._history.get(chat_id))
         self._history.setdefault(chat_id, []).append(page)
         self._quick_actions.setdefault(chat_id, {})[page] = list(quick_actions)
         # Ensure usage counters exist only for current actions.
@@ -68,10 +69,21 @@ class UnifiedNavigationSystem:
             markup.add(
                 telebot.types.InlineKeyboardButton(text=text, callback_data=callback)
             )
-        markup.add(
-            telebot.types.InlineKeyboardButton(text='🏠 Inicio', callback_data='Volver al inicio'),
-            telebot.types.InlineKeyboardButton(text='❌ Cancelar', callback_data='GLOBAL_CANCEL'),
+        controls = []
+        if has_history:
+            controls.append(
+                telebot.types.InlineKeyboardButton(text='⬅️ Atrás', callback_data='GLOBAL_BACK')
+            )
+        controls.append(
+            telebot.types.InlineKeyboardButton(text='🔄 Actualizar', callback_data='GLOBAL_REFRESH')
         )
+        controls.append(
+            telebot.types.InlineKeyboardButton(text='🏠 Inicio', callback_data='Volver al inicio')
+        )
+        controls.append(
+            telebot.types.InlineKeyboardButton(text='❌ Cancelar', callback_data='GLOBAL_CANCEL')
+        )
+        markup.add(*controls)
         return markup
 
     def get_quick_actions(self, chat_id, page=None):
@@ -84,6 +96,19 @@ class UnifiedNavigationSystem:
         # Sort actions by usage count (descending).  ``sorted`` is stable so
         # equally used actions keep their original order.
         return sorted(actions, key=lambda a: usage.get(a[1], 0), reverse=True)
+
+    def current(self, chat_id):
+        """Return the current page for ``chat_id`` if available."""
+        pages = self._history.get(chat_id, [])
+        return pages[-1] if pages else None
+
+    def back(self, chat_id):
+        """Step back one level in the history for ``chat_id``."""
+        pages = self._history.get(chat_id, [])
+        if len(pages) >= 2:
+            pages.pop()  # discard current page
+            return pages[-1]
+        return None
 
     def reset(self, chat_id):
         """Clear stored navigation data for ``chat_id``."""

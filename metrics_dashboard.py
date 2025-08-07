@@ -53,7 +53,6 @@ def show_global_metrics(chat_id, user_id):
         chat_id,
         'global_metrics',
         [
-            ('🔄 Actualizar', 'global_metrics'),
             ('📊 Reportes', 'global_metrics'),
             ('⚠️ Alertas', 'global_alerts'),
         ],

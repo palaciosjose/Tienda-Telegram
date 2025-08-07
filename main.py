@@ -489,6 +489,22 @@ def inline(callback):
                 getattr(callback.from_user, 'first_name', ''),
             )
             return
+        if callback.data == 'GLOBAL_BACK':
+            prev = nav_system.back(callback.message.chat.id)
+            if prev:
+                nav_system.handle(prev, callback.message.chat.id, callback.from_user.id)
+            else:
+                send_main_menu(
+                    callback.message.chat.id,
+                    getattr(callback.from_user, 'username', ''),
+                    getattr(callback.from_user, 'first_name', ''),
+                )
+            return
+        if callback.data == 'GLOBAL_REFRESH':
+            current = nav_system.current(callback.message.chat.id)
+            if current:
+                nav_system.handle(current, callback.message.chat.id, callback.from_user.id)
+            return
         if callback.data in nav_system._actions:
             nav_system.handle(
                 callback.data, callback.message.chat.id, callback.from_user.id

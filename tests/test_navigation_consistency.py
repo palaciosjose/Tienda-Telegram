@@ -43,10 +43,12 @@ def _patch_telebot(monkeypatch):
 def test_universal_navigation_structure(monkeypatch):
     _patch_telebot(monkeypatch)
     nav_system.reset(1)
-    markup = nav_system.create_universal_navigation(1, 'sample', [('🔍 Buscar', 'search')])
+    markup = nav_system.create_universal_navigation(1, 'p1', [('🔍 Buscar', 'search')])
     data = markup.to_dict()['inline_keyboard']
-    assert data[-1][0]['text'] == '🏠 Inicio'
-    assert data[-1][1]['text'] == '❌ Cancelar'
+    assert [b['text'] for b in data[-1]] == ['🔄 Actualizar', '🏠 Inicio', '❌ Cancelar']
+    markup = nav_system.create_universal_navigation(1, 'p2')
+    data = markup.to_dict()['inline_keyboard']
+    assert [b['text'] for b in data[-1]] == ['⬅️ Atrás', '🔄 Actualizar', '🏠 Inicio', '❌ Cancelar']
 
 
 def test_dashboard_quick_action_labels(monkeypatch):
@@ -62,7 +64,7 @@ def test_dashboard_quick_action_labels(monkeypatch):
     monkeypatch.setattr(md, 'send_long_message', lambda *a, **k: None)
     md.show_global_metrics(10, 10)
     metrics_actions = nav_system.get_quick_actions(10, 'global_metrics')
-    assert [t for t, _ in metrics_actions] == ['🔄 Actualizar', '📊 Reportes', '⚠️ Alertas']
+    assert [t for t, _ in metrics_actions] == ['📊 Reportes', '⚠️ Alertas']
     for text, _ in metrics_actions:
         assert not text[0].isalnum()
         assert len(text) <= 15
@@ -90,3 +92,17 @@ def test_quick_actions_prioritized(monkeypatch):
     nav_system.handle('A', 99, 0)
     actions = nav_system.get_quick_actions(99, 'p')
     assert [cb for _, cb in actions] == ['B', 'A']
+
+
+def test_back_and_refresh_callbacks(monkeypatch):
+    _patch_telebot(monkeypatch)
+    nav_system.reset(50)
+    called = []
+    nav_system.register('page1', lambda c, u: called.append('page1'))
+    nav_system.register('page2', lambda c, u: called.append('page2'))
+    nav_system.create_universal_navigation(50, 'page1')
+    nav_system.create_universal_navigation(50, 'page2')
+    nav_system.handle(nav_system.current(50), 50, 0)
+    assert called[-1] == 'page2'
+    nav_system.handle(nav_system.back(50), 50, 0)
+    assert called[-1] == 'page1'
