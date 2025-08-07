@@ -123,6 +123,16 @@ def test_superadmin_dashboard_access(monkeypatch, tmp_path):
             self.content_type = 'text'
             self.from_user = types.SimpleNamespace(first_name='n')
 
+    called = {'dash': 0}
+    import adminka as adm
+    original = adm.show_superadmin_dashboard
+
+    def wrapper(cid, uid):
+        called['dash'] += 1
+        return original(cid, uid)
+
+    monkeypatch.setattr(adm, 'show_superadmin_dashboard', wrapper)
+
     cb = types.SimpleNamespace(
         data='select_store_main',
         message=Msg(),
@@ -139,6 +149,36 @@ def test_superadmin_dashboard_access(monkeypatch, tmp_path):
                 messages.append(c[2].get('text', ''))
 
     assert any('+----+' in m for m in messages)
+    assert nav_system.current(5) == 'superadmin_dashboard'
+    quick = nav_system.get_quick_actions(5, 'superadmin_dashboard')
+    assert [t for t, _ in quick] == ['📋 Ver tiendas', '➕ Crear', '🧠 BI Reporte', '🤖 Telethon']
+
+    cb = types.SimpleNamespace(
+        data='GLOBAL_REFRESH',
+        message=Msg(),
+        id='2',
+        from_user=types.SimpleNamespace(id=1),
+    )
+    main.inline(cb)
+    assert called['dash'] == 2
+
+    monkeypatch.setattr(dop, 'list_shops', lambda: [])
+    cb = types.SimpleNamespace(
+        data='admin_list_shops',
+        message=Msg(),
+        id='3',
+        from_user=types.SimpleNamespace(id=1),
+    )
+    main.inline(cb)
+
+    cb = types.SimpleNamespace(
+        data='GLOBAL_BACK',
+        message=Msg(),
+        id='4',
+        from_user=types.SimpleNamespace(id=1),
+    )
+    main.inline(cb)
+    assert called['dash'] == 3
 
 
 def test_superadmin_dashboard_denied(monkeypatch, tmp_path):
@@ -179,3 +219,4 @@ def test_select_store_main_registered(monkeypatch, tmp_path):
     sys.modules.pop('adminka', None)
     setup_main(monkeypatch, tmp_path)
     assert 'select_store_main' in nav_system._actions
+    assert 'superadmin_dashboard' in nav_system._actions

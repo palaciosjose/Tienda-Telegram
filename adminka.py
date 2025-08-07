@@ -319,26 +319,13 @@ def show_superadmin_dashboard(chat_id, user_id):
     lines.append(header)
     table = '\n'.join(lines)
 
-    key = telebot.types.InlineKeyboardMarkup()
-    # Asegurar máximo de 3 botones por fila
-    try:
-        key.row_width = 3
-    except Exception:
-        pass
-    key.add(
-        telebot.types.InlineKeyboardButton(
-            text='Ver todas las tiendas', callback_data='admin_list_shops'
-        ),
-        telebot.types.InlineKeyboardButton(
-            text='Crear nueva', callback_data='admin_create_shop'
-        ),
-        telebot.types.InlineKeyboardButton(
-            text='Config Telethon global', callback_data='admin_telethon_config'
-        ),
-        telebot.types.InlineKeyboardButton(
-            text='\U0001F4CA BI Reporte', callback_data='admin_bi_report'
-        ),
-    )
+    quick = [
+        ('📋 Ver tiendas', 'admin_list_shops'),
+        ('➕ Crear', 'admin_create_shop'),
+        ('🧠 BI Reporte', 'admin_bi_report'),
+        ('🤖 Telethon', 'admin_telethon_config'),
+    ]
+    key = nav_system.create_universal_navigation(chat_id, 'superadmin_dashboard', quick)
 
     MAX = 4096
     for i in range(0, len(table), MAX):
@@ -350,6 +337,10 @@ def show_superadmin_dashboard(chat_id, user_id):
 
 
 # Registrar el dashboard principal del superadmin en el sistema de navegación
+nav_system.register(
+    "superadmin_dashboard",
+    lambda chat_id, uid: show_superadmin_dashboard(chat_id, uid),
+)
 nav_system.register(
     "select_store_main",
     lambda chat_id, uid: show_superadmin_dashboard(chat_id, uid),
