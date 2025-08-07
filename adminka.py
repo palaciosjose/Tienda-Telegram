@@ -17,6 +17,7 @@ from advertising_system.admin_integration import (
 from bot_instance import bot
 from advertising_system.scheduler import CampaignScheduler
 from navigation import nav_system
+from utils.message_chunker import send_long_message
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -42,7 +43,7 @@ def clear_state(chat_id):
 def cancel_and_reset(chat_id):
     """Clear user state and notify cancellation"""
     clear_state(chat_id)
-    bot.send_message(chat_id, '❌ Operación cancelada.')
+    send_long_message(bot, chat_id, '❌ Operación cancelada.')
 
 
 def get_prev(chat_id):
@@ -83,16 +84,17 @@ def show_main_admin_menu(chat_id):
         ('⚙️ Otros', 'ad_otros'),
     ])
     key = nav_system.create_universal_navigation(chat_id, 'admin_main', quick_actions)
-    bot.send_message(
+    send_long_message(
+        bot,
         chat_id,
         '¡Has ingresado al panel de administración del bot!\nPara salir, presiona /start',
-        reply_markup=key,
+        markup=key,
     )
 
 
 def session_expired(chat_id):
     """Informar al usuario que la sesión expiró y volver al menú principal"""
-    bot.send_message(chat_id, '❌ La sesión anterior se perdió.')
+    send_long_message(bot, chat_id, '❌ La sesión anterior se perdió.')
     with shelve.open(files.sost_bd) as bd:
         if str(chat_id) in bd:
             del bd[str(chat_id)]
@@ -149,7 +151,9 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
     key = nav_system.create_universal_navigation(
         chat_id, f"store_dashboard_{store_id}", quick_actions
     )
-    bot.send_message(chat_id, message, reply_markup=key, parse_mode="Markdown")
+    send_long_message(
+        bot, chat_id, message, markup=key, parse_mode="Markdown"
+    )
 
 
 def show_marketing_unified(chat_id, store_id):
@@ -190,16 +194,19 @@ def show_marketing_unified(chat_id, store_id):
     key = nav_system.create_universal_navigation(
         chat_id, f"marketing_{store_id}", quick_actions
     )
-    bot.send_message(chat_id, "\n".join(lines), reply_markup=key, parse_mode="Markdown")
+    send_long_message(
+        bot, chat_id, "\n".join(lines), markup=key, parse_mode="Markdown"
+    )
 
 
 def quick_new_campaign(chat_id, store_id):
     """Initiate creation of a new campaign."""
     key = nav_system.create_universal_navigation(chat_id, "new_campaign")
-    bot.send_message(
+    send_long_message(
+        bot,
         chat_id,
         "📝 *Nombre de la campaña*\n\nEnvía el nombre para la nueva campaña:",
-        reply_markup=key,
+        markup=key,
         parse_mode="Markdown",
     )
     set_state(chat_id, 160, prev="marketing")
@@ -209,13 +216,13 @@ def quick_telethon(chat_id, store_id):
     """Show telethon statistics for store."""
     stats = telethon_manager.get_stats(store_id)
     msg = "Activo" if stats.get("active") else "Inactivo"
-    bot.send_message(chat_id, f"🤖 Telethon: {msg}")
+    send_long_message(bot, chat_id, f"🤖 Telethon: {msg}")
 
 
 def quick_stats(chat_id, store_id):
     """Show list of campaigns for admin."""
     text = list_campaigns_for_admin()
-    bot.send_message(chat_id, text, parse_mode="Markdown")
+    send_long_message(bot, chat_id, text, parse_mode="Markdown")
 
 
 nav_system.register("quick_new_campaign", quick_new_campaign)
@@ -326,14 +333,7 @@ def show_superadmin_dashboard(chat_id, user_id):
         ('🤖 Telethon', 'admin_telethon_config'),
     ]
     key = nav_system.create_universal_navigation(chat_id, 'superadmin_dashboard', quick)
-
-    MAX = 4096
-    for i in range(0, len(table), MAX):
-        chunk = table[i : i + MAX]
-        if i + MAX >= len(table):
-            bot.send_message(chat_id, chunk, reply_markup=key)
-        else:
-            bot.send_message(chat_id, chunk)
+    send_long_message(bot, chat_id, table, markup=key)
 
 
 # Registrar el dashboard principal del superadmin en el sistema de navegación
@@ -360,7 +360,13 @@ def admin_list_shops(chat_id, user_id):
     for sid, aid, name in shops:
         lines.append(f"{sid}. {name} (admin {aid})")
     key = nav_system.create_universal_navigation(chat_id, "admin_list_shops")
-    bot.send_message(chat_id, "\n".join(lines), parse_mode="Markdown", reply_markup=key)
+    send_long_message(
+        bot,
+        chat_id,
+        "\n".join(lines),
+        markup=key,
+        parse_mode="Markdown",
+    )
 
 
 def admin_create_shop(chat_id, user_id):
@@ -382,16 +388,19 @@ def show_bi_report(chat_id, user_id):
         key = nav_system.create_universal_navigation(
             chat_id, "admin_bi_report_denied"
         )
-        bot.send_message(
+        send_long_message(
+            bot,
             chat_id,
             "❌ Solo SuperAdmin.",
-            reply_markup=key,
+            markup=key,
         )
         db.log_event("WARNING", f"user {user_id} denied bi_report")
         return
     report = generate_bi_report()
     key = nav_system.create_universal_navigation(chat_id, "admin_bi_report")
-    bot.send_message(chat_id, report, parse_mode="Markdown", reply_markup=key)
+    send_long_message(
+        bot, chat_id, report, markup=key, parse_mode="Markdown"
+    )
     db.log_event("INFO", f"user {user_id} viewed bi_report")
 
 
