@@ -1,4 +1,5 @@
 import types
+
 from tests.test_shop_info import setup_main
 
 
