@@ -415,6 +415,36 @@ def _admin_bi_report_nav(chat_id, user_id):
 nav_system.register("admin_bi_report", _admin_bi_report_nav)
 
 
+def route_superadmin_callback(callback_data, chat_id, user_id):
+    """Dispatch superadmin dashboard callbacks to their handlers.
+
+    Parameters
+    ----------
+    callback_data: str
+        Data received from the inline keyboard button.
+    chat_id: int
+        Identifier of the chat where the callback originated.
+    user_id: int
+        Identifier of the user triggering the callback.
+    """
+
+    if callback_data == "admin_telethon_config":
+        # Telethon configuration uses a dedicated handler that expects the
+        # original callback data as first argument.
+        telethon_config.global_telethon_config(callback_data, chat_id, user_id)
+        return
+
+    mapping = {
+        "admin_list_shops": admin_list_shops,
+        "admin_create_shop": admin_create_shop,
+        "admin_bi_report": show_bi_report,
+    }
+
+    handler = mapping.get(callback_data)
+    if handler:
+        handler(chat_id, user_id)
+
+
 def finalize_product_campaign(chat_id, shop_id, product):
     """Crear campaña de producto usando la información almacenada."""
     info = dop.get_product_full_info(product, shop_id)
