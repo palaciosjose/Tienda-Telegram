@@ -97,11 +97,11 @@ def send_main_menu(chat_id, username, name):
             elif media['type'] == 'animation':
                 bot.send_animation(chat_id, media['file_id'], caption=start_message, reply_markup=key)
             else:
-                bot.send_message(chat_id, start_message, reply_markup=key)
+                send_long_message(bot, chat_id, start_message, markup=key)
         else:
-            bot.send_message(chat_id, start_message, reply_markup=key)
+            send_long_message(bot, chat_id, start_message, markup=key)
     else:
-        bot.send_message(chat_id, '🏠 Inicio', reply_markup=key)
+        send_long_message(bot, chat_id, '🏠 Inicio', markup=key)
 
 def show_main_interface(chat_id, user_id):
     """Mostrar la interfaz principal con las tiendas del usuario.
@@ -180,9 +180,9 @@ def show_shop_selection(chat_id, message=None):
                 bot.delete_message(message.chat.id, message.message_id)
             except Exception:
                 pass
-            bot.send_message(chat_id, "Seleccione una tienda:", reply_markup=key)
+            send_long_message(bot, chat_id, "Seleccione una tienda:", markup=key)
     else:
-        bot.send_message(chat_id, "Seleccione una tienda:", reply_markup=key)
+        send_long_message(bot, chat_id, "Seleccione una tienda:", markup=key)
 
 
 def show_product_details(chat_id, product_name, shop_id):
@@ -216,7 +216,7 @@ def show_product_details(chat_id, product_name, shop_id):
 
 def session_expired(chat_id, username, name):
     """Informar expiración de sesión y volver al menú principal"""
-    bot.send_message(chat_id, '❌ La sesión expiró.')
+    send_long_message(bot, chat_id, '❌ La sesión expiró.')
     with shelve.open(files.sost_bd) as bd:
         if str(chat_id) in bd:
             del bd[str(chat_id)]
