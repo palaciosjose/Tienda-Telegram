@@ -377,25 +377,33 @@ def admin_create_shop(chat_id, user_id):
 
 
 def show_bi_report(chat_id, user_id):
-    """Send the Business Intelligence report to the super admin."""
-    if user_id != config.admin_id:
+    """Send the Business Intelligence report to authorised SuperAdmin roles."""
+    if db.get_user_role(user_id) != "superadmin":
         key = nav_system.create_universal_navigation(
             chat_id, "admin_bi_report_denied"
         )
         bot.send_message(
             chat_id,
-            "❌ Solo el superadministrador puede ver el reporte.",
+            "❌ Solo SuperAdmin.",
             reply_markup=key,
         )
+        db.log_event("WARNING", f"user {user_id} denied bi_report")
         return
     report = generate_bi_report()
     key = nav_system.create_universal_navigation(chat_id, "admin_bi_report")
     bot.send_message(chat_id, report, parse_mode="Markdown", reply_markup=key)
+    db.log_event("INFO", f"user {user_id} viewed bi_report")
 
 
 nav_system.register("admin_list_shops", lambda c, u: admin_list_shops(c, u))
 nav_system.register("admin_create_shop", lambda c, u: admin_create_shop(c, u))
-nav_system.register("admin_bi_report", lambda c, u: show_bi_report(c, u))
+
+
+def _admin_bi_report_nav(chat_id, user_id):
+    show_bi_report(chat_id, user_id)
+
+
+nav_system.register("admin_bi_report", _admin_bi_report_nav)
 
 
 def finalize_product_campaign(chat_id, shop_id, product):
