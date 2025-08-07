@@ -159,15 +159,16 @@ def show_main_interface(chat_id, user_id):
     for store in stores:
         status_emoji = "🟢" if store.get("status") else "🔴"
         telethon_emoji = "🤖" if store.get("telethon_active") else "⚪"
+        short = store["name"][:20]
 
         key.add(
             telebot.types.InlineKeyboardButton(
-                text=f"{store['name']} {status_emoji} {telethon_emoji}",
+                text=f"{short} {status_emoji} {telethon_emoji}",
                 callback_data=f"SHOP_{store['id']}",
             )
         )
 
-        lines.append(f"{store['name']} {status_emoji} {telethon_emoji}")
+        lines.append(f"{short} {status_emoji} {telethon_emoji}")
 
     # Compose final message text with optional list of stores
     text = "Seleccione una tienda:"
