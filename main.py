@@ -3,6 +3,7 @@ import config, dop, payments, adminka, files
 import db
 from bot_instance import bot
 from navigation import nav_system
+from utils.message_chunker import send_long_message
 
 try:
     bot_username = bot.get_me().username.lower()
@@ -102,22 +103,6 @@ def send_main_menu(chat_id, username, name):
     else:
         bot.send_message(chat_id, '🏠 Inicio', reply_markup=key)
 
-
-MAX_MESSAGE_LENGTH = 4096
-
-
-def _send_long_message(chat_id, text, reply_markup=None):
-    """Send a message ensuring Telegram length limits."""
-    if text is None:
-        return
-    for i in range(0, len(text), MAX_MESSAGE_LENGTH):
-        chunk = text[i : i + MAX_MESSAGE_LENGTH]
-        if i + MAX_MESSAGE_LENGTH >= len(text):
-            bot.send_message(chat_id, chunk, reply_markup=reply_markup)
-        else:
-            bot.send_message(chat_id, chunk)
-
-
 def show_main_interface(chat_id, user_id):
     """Mostrar la interfaz principal con las tiendas del usuario.
 
@@ -131,8 +116,8 @@ def show_main_interface(chat_id, user_id):
     The human readable list of stores is also included in the message body so
     that very long store lists still remain visible even if the keyboard is
     truncated.  When the resulting text exceeds Telegram's 4096 character
-    limit, ``_send_long_message`` will split the output into multiple
-    messages, attaching the keyboard only to the last chunk.
+    limit, ``send_long_message`` from :mod:`utils.message_chunker` will
+    paginate the output and attach the keyboard only to the first chunk.
     """
 
     key = telebot.types.InlineKeyboardMarkup()
@@ -152,7 +137,7 @@ def show_main_interface(chat_id, user_id):
 
     # If the user has no stores and isn't a super admin, show a warning
     if not stores and role != "superadmin":
-        _send_long_message(chat_id, "No tienes tiendas disponibles.")
+        send_long_message(bot, chat_id, "No tienes tiendas disponibles.")
         return
 
     # Build both the inline buttons and a textual list for context.
@@ -174,7 +159,7 @@ def show_main_interface(chat_id, user_id):
     if lines:
         text += "\n" + "\n".join(lines)
 
-    _send_long_message(chat_id, text, reply_markup=key)
+    send_long_message(bot, chat_id, text, markup=key)
 
 def show_shop_selection(chat_id, message=None):
     """Mostrar listado de tiendas disponibles"""
@@ -285,7 +270,9 @@ def message_send(message):
                 dop.user_loger(chat_id=message.chat.id)
                 return
 
-        if has_shop:
+        if is_admin:
+            show_main_interface(message.chat.id, user_id)
+        elif has_shop:
             send_main_menu(
                 message.chat.id,
                 message.chat.username,
