@@ -43,12 +43,19 @@ def _patch_telebot(monkeypatch):
 def test_universal_navigation_structure(monkeypatch):
     _patch_telebot(monkeypatch)
     nav_system.reset(1)
-    markup = nav_system.create_universal_navigation(1, 'p1', [('🔍 Buscar', 'search')])
+    actions = [('A', 'a'), ('B', 'b'), ('C', 'c'), ('D', 'd')]
+    markup = nav_system.create_universal_navigation(1, 'p1', actions)
     data = markup.to_dict()['inline_keyboard']
+    assert len(data[0]) == 3  # first three quick actions
+    assert len(data[1]) == 1  # remaining quick action
     assert [b['text'] for b in data[-1]] == ['🔄 Actualizar', '🏠 Inicio', '❌ Cancelar']
+    assert all(len(row) <= 3 for row in data)
+
     markup = nav_system.create_universal_navigation(1, 'p2')
     data = markup.to_dict()['inline_keyboard']
-    assert [b['text'] for b in data[-1]] == ['⬅️ Atrás', '🔄 Actualizar', '🏠 Inicio', '❌ Cancelar']
+    assert [b['text'] for b in data[-2]] == ['⬅️ Atrás', '🔄 Actualizar', '🏠 Inicio']
+    assert [b['text'] for b in data[-1]] == ['❌ Cancelar']
+    assert all(len(row) <= 3 for row in data)
 
 
 def test_dashboard_quick_action_labels(monkeypatch):
