@@ -77,7 +77,7 @@ def show_main_admin_menu(chat_id):
         ('💰 Pagos', 'ad_pagos'),
         ('📊 Stats', 'ad_stats'),
         ('📣 Difusión', 'ad_difusion'),
-        ('Resumen de compradores', 'ad_resumen'),
+        ('👥 Clientes', 'ad_resumen'),
         ('📢 Marketing', 'ad_marketing'),
         ('🏷️ Categorías', 'ad_categorias'),
         ('💸 Descuentos', 'ad_descuentos'),
@@ -140,11 +140,11 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
     message = "\n".join(lines)
 
     quick_actions = [
-        ("Mi Tienda", "dash_shop_info"),
-        ("Productos", "dash_products"),
-        ("Marketing", "dash_marketing"),
-        ("Telethon", "dash_telethon"),
-        ("⬅️ Cambiar Tienda", "dash_change_store"),
+        ("🏪 Tienda", "dash_shop_info"),
+        ("📦 Productos", "dash_products"),
+        ("📢 Marketing", "dash_marketing"),
+        ("🤖 Telethon", "dash_telethon"),
+        ("⬅️ Cambiar", "dash_change_store"),
         ("🔄 Actualizar", f"dash_refresh_{store_id}"),
     ]
 
@@ -841,7 +841,7 @@ def in_adminka(chat_id, message_text, username, name_user):
             result = dop.get_daily_sales()
             bot.send_message(chat_id, result, parse_mode='Markdown')
 
-        elif 'Resumen de compradores' == message_text:
+        elif '👥 Clientes' == message_text:
             lines = dop.get_buyers_summary(shop_id)
             if not lines:
                 bot.send_message(chat_id, 'No hay compras registradas.')
@@ -3158,7 +3158,7 @@ nav_system.register('ad_producto', lambda chat_id, store_id: in_adminka(chat_id,
 nav_system.register('ad_pagos', lambda chat_id, store_id: in_adminka(chat_id, '💰 Pagos', None, None))
 nav_system.register('ad_stats', lambda chat_id, store_id: in_adminka(chat_id, '📊 Stats', None, None))
 nav_system.register('ad_difusion', lambda chat_id, store_id: in_adminka(chat_id, '📣 Difusión', None, None))
-nav_system.register('ad_resumen', lambda chat_id, store_id: in_adminka(chat_id, 'Resumen de compradores', None, None))
+nav_system.register('ad_resumen', lambda chat_id, store_id: in_adminka(chat_id, '👥 Clientes', None, None))
 nav_system.register('ad_marketing', lambda chat_id, store_id: in_adminka(chat_id, '📢 Marketing', None, None))
 nav_system.register('ad_categorias', lambda chat_id, store_id: in_adminka(chat_id, '🏷️ Categorías', None, None))
 nav_system.register('ad_descuentos', lambda chat_id, store_id: in_adminka(chat_id, '💸 Descuentos', None, None))

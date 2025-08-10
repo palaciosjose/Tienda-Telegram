@@ -65,25 +65,43 @@ class UnifiedNavigationSystem:
         import telebot
 
         markup = telebot.types.InlineKeyboardMarkup()
-        for text, callback in quick_actions:
-            markup.add(
-                telebot.types.InlineKeyboardButton(text=text, callback_data=callback)
-            )
+
+        # Render quick actions, packing at most three buttons per row for a
+        # consistent layout across the bot.
+        for i in range(0, len(quick_actions), 3):
+            row = [
+                telebot.types.InlineKeyboardButton(text=t, callback_data=c)
+                for t, c in quick_actions[i : i + 3]
+            ]
+            markup.add(*row)
+
+        # Standard navigation controls (back, refresh, home, cancel).  These
+        # are also packed into rows of three to keep the keyboard compact.
         controls = []
         if has_history:
             controls.append(
-                telebot.types.InlineKeyboardButton(text='⬅️ Atrás', callback_data='GLOBAL_BACK')
+                telebot.types.InlineKeyboardButton(
+                    text='⬅️ Atrás', callback_data='GLOBAL_BACK'
+                )
             )
         controls.append(
-            telebot.types.InlineKeyboardButton(text='🔄 Actualizar', callback_data='GLOBAL_REFRESH')
+            telebot.types.InlineKeyboardButton(
+                text='🔄 Actualizar', callback_data='GLOBAL_REFRESH'
+            )
         )
         controls.append(
-            telebot.types.InlineKeyboardButton(text='🏠 Inicio', callback_data='Volver al inicio')
+            telebot.types.InlineKeyboardButton(
+                text='🏠 Inicio', callback_data='Volver al inicio'
+            )
         )
         controls.append(
-            telebot.types.InlineKeyboardButton(text='❌ Cancelar', callback_data='GLOBAL_CANCEL')
+            telebot.types.InlineKeyboardButton(
+                text='❌ Cancelar', callback_data='GLOBAL_CANCEL'
+            )
         )
-        markup.add(*controls)
+
+        for i in range(0, len(controls), 3):
+            markup.add(*controls[i : i + 3])
         return markup
 
     def get_quick_actions(self, chat_id, page=None):

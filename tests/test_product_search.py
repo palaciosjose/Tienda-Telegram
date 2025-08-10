@@ -10,7 +10,7 @@ def test_menu_has_search_button(monkeypatch, tmp_path):
 
     main.send_main_menu(5, 'user', 'Name')
     buttons = calls[-1][2]['reply_markup'].buttons
-    assert any('Buscar productos' in b.text for b in buttons)
+    assert any('🔍 Buscar' in b.text for b in buttons)
 
 
 def test_search_flow_returns_results(monkeypatch, tmp_path):

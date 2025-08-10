@@ -74,9 +74,9 @@ def send_main_menu(chat_id, username, name):
     """Enviar el mensaje de inicio con el teclado principal"""
     quick_actions = [
         ('🛍️ Catálogo', 'Ir al catálogo de productos'),
-        ('📜 Mis compras', 'Ver mis compras'),
-        ('🔍 Buscar productos', 'Buscar productos'),
-        ('Cambiar tienda', 'Cambiar tienda'),
+        ('📜 Compras', 'Ver mis compras'),
+        ('🔍 Buscar', 'Buscar productos'),
+        ('🔄 Cambiar', 'Cambiar tienda'),
     ]
     key = nav_system.create_universal_navigation(chat_id, 'main_menu', quick_actions)
     if dop.check_message('start'):

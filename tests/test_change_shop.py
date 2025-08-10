@@ -8,7 +8,7 @@ def test_main_menu_has_change_button(monkeypatch, tmp_path):
 
     main.send_main_menu(5, 'u', 'N')
     buttons = calls[-1][2]["reply_markup"].buttons
-    assert any('Cambiar tienda' in b.text for b in buttons)
+    assert any('🔄 Cambiar' in b.text for b in buttons)
 
 
 def test_change_shop_callback_invokes_list(monkeypatch, tmp_path):
