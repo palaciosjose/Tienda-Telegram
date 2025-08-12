@@ -464,18 +464,16 @@ def admin_list_shops(chat_id, user_id):
         )
         send_long_message(bot, chat_id, "❌ Acceso restringido.", markup=key)
         return
+
     shops = dop.list_shops()
-    lines = ["*Tiendas registradas:*"]
-    for sid, aid, name in shops:
-        lines.append(f"{sid}. {name} (admin {aid})")
+    if shops:
+        lines = [f"{sid}. {name} (admin {aid})" for sid, aid, name in shops]
+    else:
+        lines = ["No hay tiendas registradas"]
+
+    box = render_box(lines, title="Tiendas registradas")
     key = nav_system.create_universal_navigation(chat_id, "admin_list_shops")
-    send_long_message(
-        bot,
-        chat_id,
-        "\n".join(lines),
-        markup=key,
-        parse_mode="Markdown",
-    )
+    send_long_message(bot, chat_id, box, markup=key, parse_mode="Markdown")
 
 
 def admin_create_shop(chat_id, user_id):
@@ -486,13 +484,20 @@ def admin_create_shop(chat_id, user_id):
         )
         send_long_message(bot, chat_id, "❌ Acceso restringido.", markup=key)
         return
+
     key = nav_system.create_universal_navigation(chat_id, "admin_create_shop_name")
-    send_long_message(bot, chat_id, "Ingrese el nombre de la nueva tienda:", markup=key)
+    send_long_message(
+        bot,
+        chat_id,
+        "🆕 *Creación de tienda*\n\nIngresa el nombre de la nueva tienda:",
+        markup=key,
+        parse_mode="Markdown",
+    )
     set_state(chat_id, 900, "main")
 
 
-def show_bi_report(chat_id, user_id):
-    """Send the Business Intelligence report to authorised SuperAdmin roles."""
+def admin_bi_report(chat_id, user_id):
+    """Enviar reporte de Business Intelligence al SuperAdmin."""
     if db.get_user_role(user_id) != "superadmin":
         key = nav_system.create_universal_navigation(
             chat_id, "admin_bi_report_denied"
@@ -505,16 +510,28 @@ def show_bi_report(chat_id, user_id):
         )
         db.log_event("WARNING", f"user {user_id} denied bi_report")
         return
+
+    send_long_message(bot, chat_id, "⏳ Generando reporte...")
     report = generate_bi_report()
     key = nav_system.create_universal_navigation(chat_id, "admin_bi_report")
-    send_long_message(
-        bot, chat_id, report, markup=key, parse_mode="Markdown"
-    )
+    send_long_message(bot, chat_id, report, markup=key, parse_mode="Markdown")
     db.log_event("INFO", f"user {user_id} viewed bi_report")
 
 
-nav_system.register("admin_list_shops", admin_list_shops)
-nav_system.register("admin_create_shop", admin_create_shop)
+# Compatibilidad retroactiva
+show_bi_report = admin_bi_report
+
+
+def _admin_list_shops_nav(chat_id, user_id):
+    admin_list_shops(chat_id, user_id)
+
+
+def _admin_create_shop_nav(chat_id, user_id):
+    admin_create_shop(chat_id, user_id)
+
+
+nav_system.register("admin_list_shops", _admin_list_shops_nav)
+nav_system.register("admin_create_shop", _admin_create_shop_nav)
 
 
 def _global_telethon_config(chat_id, user_id):
@@ -546,14 +563,7 @@ def route_superadmin_callback(callback_data, chat_id, user_id):
         telethon_config.global_telethon_config(callback_data, chat_id, user_id)
         return
 
-    mapping = {
-        "admin_list_shops": admin_list_shops,
-        "admin_create_shop": admin_create_shop,
-        "admin_bi_report": show_bi_report,
-    }
-    handler = mapping.get(callback_data)
-    if handler:
-        handler(chat_id, user_id)
+    nav_system.handle(callback_data, chat_id, user_id)
 
 
 # ---------------------------------------------------------------------------
@@ -721,6 +731,39 @@ def text_analytics(message_text, chat_id):
                 send_long_message(bot, chat_id, "Selección inválida. Intente nuevamente.")
                 return
             finalize_product_campaign(chat_id, shop_id, message_text)
+        elif sost_num == 900:
+            # Recibir nombre de tienda
+            with shelve.open(files.sost_bd) as bd:
+                bd[f"{chat_id}_new_shop_name"] = message_text.strip()
+            key = nav_system.create_universal_navigation(
+                chat_id, "admin_create_shop_admin"
+            )
+            send_long_message(
+                bot,
+                chat_id,
+                "👤 Ingresa el ID del administrador de la tienda:",
+                markup=key,
+            )
+            set_state(chat_id, 901, "main")
+        elif sost_num == 901:
+            # Recibir ID del administrador y crear tienda
+            try:
+                admin_id = int(message_text.strip())
+            except ValueError:
+                send_long_message(bot, chat_id, "❌ ID inválido. Intenta nuevamente:")
+                return
+            with shelve.open(files.sost_bd) as bd:
+                name = bd.pop(f"{chat_id}_new_shop_name", "Tienda")
+                if str(chat_id) in bd:
+                    del bd[str(chat_id)]
+            send_long_message(bot, chat_id, "⏳ Creando tienda...")
+            shop_id_new = dop.create_shop(name, admin_id=admin_id)
+            send_long_message(
+                bot,
+                chat_id,
+                f"✅ Tienda '{name}' creada (ID: {shop_id_new}).",
+            )
+            show_superadmin_dashboard(chat_id, chat_id)
         else:
             clear_state(chat_id)
 
