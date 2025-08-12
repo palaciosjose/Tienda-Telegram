@@ -1,7 +1,7 @@
-from typing import Iterable, Sequence
+from typing import Iterable, List, Optional
 
 
-def render_box(lines: Iterable[str], title: str | None = None) -> str:
+def render_box(lines: Iterable[str], title: Optional[str] = None) -> str:
     """Render text inside a simple box for nicer messages.
 
     Parameters
@@ -25,7 +25,7 @@ def render_box(lines: Iterable[str], title: str | None = None) -> str:
     horiz = "─" * (width + 2)
     top = f"┌{horiz}┐"
     bottom = f"└{horiz}┘"
-    out_lines: list[str] = [top]
+    out_lines: List[str] = [top]
     if title:
         out_lines.append(f"│ {title.ljust(width)} │")
         out_lines.append(f"├{horiz}┤")
