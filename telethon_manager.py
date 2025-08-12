@@ -11,10 +11,27 @@ except Exception:  # pragma: no cover - telethon may not be installed in tests
 def get_stats(shop_id):
     """Return telethon statistics for a store.
 
-    The stats include whether telethon is active and the number of messages
-    sent through the telethon platform for the given shop. Missing tables or
-    data result in default values."""
-    stats = {"active": False, "sent": 0}
+    Besides the basic "active" flag and total messages sent, this helper tries
+    to gather a few extra metrics used by the dashboard:
+
+    ``daemon``
+        Value of ``telethon_daemon_status`` from the ``shops`` table.
+
+    ``api``
+        Whether API credentials are configured.  For simplicity we just check
+        the presence of ``api_id`` in ``platform_config``.
+
+    ``topics``
+        Number of stored topics for the shop.
+
+    ``last_send``
+        Timestamp of the most recent send through the telethon platform.
+
+    All fields fall back to sensible defaults if the underlying tables are not
+    available, keeping the function robust for tests where a minimal schema is
+    used."""
+
+    stats = {"active": False, "sent": 0, "daemon": "-", "api": False, "topics": 0, "last_send": "-"}
     try:
         con = db.get_db_connection()
         cur = con.cursor()
@@ -24,7 +41,23 @@ def get_stats(shop_id):
                 (shop_id,),
             )
             row = cur.fetchone()
-            stats["active"] = bool(row[0]) if row else False
+            if row:
+                stats["active"] = bool(row[0])
+        except Exception:
+            pass
+        try:
+            cur.execute(
+                "SELECT api_id FROM platform_config WHERE platform='telethon' AND shop_id=?",
+                (shop_id,),
+            )
+            stats["api"] = bool(cur.fetchone()[0])
+        except Exception:
+            pass
+        try:
+            cur.execute("SELECT telethon_daemon_status FROM shops WHERE id=?", (shop_id,))
+            row = cur.fetchone()
+            if row and row[0]:
+                stats["daemon"] = row[0]
         except Exception:
             pass
         try:
@@ -33,6 +66,18 @@ def get_stats(shop_id):
                 (shop_id,),
             )
             stats["sent"] = cur.fetchone()[0]
+            cur.execute(
+                "SELECT MAX(sent_date) FROM send_logs WHERE platform='telethon' AND shop_id=?",
+                (shop_id,),
+            )
+            last = cur.fetchone()[0]
+            if last:
+                stats["last_send"] = last
+        except Exception:
+            pass
+        try:
+            cur.execute("SELECT COUNT(*) FROM store_topics WHERE store_id=?", (shop_id,))
+            stats["topics"] = cur.fetchone()[0]
         except Exception:
             pass
     except Exception:
