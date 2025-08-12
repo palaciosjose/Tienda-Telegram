@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import metrics_dashboard as md
 import telethon_dashboard as td
 from navigation import nav_system
+from tests.test_shop_info import setup_main
 import types
 
 
@@ -113,6 +114,41 @@ def test_back_and_refresh_callbacks(monkeypatch):
     assert called[-1] == 'page2'
     nav_system.handle(nav_system.back(50), 50, 0)
     assert called[-1] == 'page1'
+
+
+def test_inline_global_callbacks(monkeypatch, tmp_path):
+    _patch_telebot(monkeypatch)
+    _, main, _, _ = setup_main(monkeypatch, tmp_path)
+    monkeypatch.setattr(main.dop, 'get_goods', lambda *a, **k: [])
+    called = []
+
+    class Msg:
+        def __init__(self):
+            self.chat = types.SimpleNamespace(id=1)
+            self.message_id = 1
+            self.content_type = 'text'
+            self.from_user = types.SimpleNamespace(id=0)
+
+    cb = types.SimpleNamespace(data='GLOBAL_CANCEL', message=Msg(), id='1', from_user=types.SimpleNamespace(id=0))
+
+    monkeypatch.setattr(main.nav_system, 'reset', lambda cid: called.append(('reset', cid)))
+    monkeypatch.setattr(main, 'show_shop_selection', lambda cid, msg=None: called.append(('show', cid)))
+    main.inline(cb)
+    assert called == [('reset', 1), ('show', 1)]
+
+    called.clear()
+    monkeypatch.setattr(main.nav_system, 'back', lambda cid: called.append(('back', cid)) or 'prev')
+    monkeypatch.setattr(main.nav_system, 'handle', lambda name, cid, uid: called.append(('handle', name, cid, uid)))
+    cb.data = 'GLOBAL_BACK'
+    main.inline(cb)
+    assert ('back', 1) in called and ('handle', 'prev', 1, 0) in called
+
+    called.clear()
+    monkeypatch.setattr(main.nav_system, 'current', lambda cid: called.append(('current', cid)) or 'cur')
+    monkeypatch.setattr(main.nav_system, 'handle', lambda name, cid, uid: called.append(('handle', name, cid, uid)))
+    cb.data = 'GLOBAL_REFRESH'
+    main.inline(cb)
+    assert ('current', 1) in called and ('handle', 'cur', 1, 0) in called
 
 
 def test_admin_menus_have_standard_buttons(monkeypatch):

@@ -465,25 +465,16 @@ def inline(callback):
             return
         
         if callback.data == 'GLOBAL_CANCEL':
-            # Clear navigation history to avoid stale breadcrumbs when the
-            # user aborts an operation and returns to the main menu.
+            # Cancel the current flow and return to the store selector.
             nav_system.reset(callback.message.chat.id)
-            send_main_menu(
-                callback.message.chat.id,
-                getattr(callback.from_user, 'username', ''),
-                getattr(callback.from_user, 'first_name', ''),
-            )
+            show_shop_selection(callback.message.chat.id)
             return
         if callback.data == 'GLOBAL_BACK':
             prev = nav_system.back(callback.message.chat.id)
             if prev:
                 nav_system.handle(prev, callback.message.chat.id, callback.from_user.id)
             else:
-                send_main_menu(
-                    callback.message.chat.id,
-                    getattr(callback.from_user, 'username', ''),
-                    getattr(callback.from_user, 'first_name', ''),
-                )
+                show_shop_selection(callback.message.chat.id)
             return
         if callback.data == 'GLOBAL_REFRESH':
             current = nav_system.current(callback.message.chat.id)
@@ -745,19 +736,9 @@ def inline(callback):
 
 
         elif callback.data == 'Volver al inicio':
-            if callback.message.chat.username:
-                if dop.get_sost(callback.message.chat.id) is True:
-                    with shelve.open(files.sost_bd) as bd:
-                        if str(callback.message.chat.id) in bd:
-                            del bd[str(callback.message.chat.id)]
-                send_main_menu(
-                    callback.message.chat.id,
-                    callback.message.chat.username,
-                    callback.message.from_user.first_name,
-                )
-                if callback.message.chat.id in in_admin:
-                    in_admin.remove(callback.message.chat.id)
-
+            nav_system.reset(callback.message.chat.id)
+            show_shop_selection(callback.message.chat.id, callback.message)
+            
         elif callback.data == 'Comprar':
             try:
                 with open('data/Temp/' + str(callback.message.chat.id) + 'good_name.txt', encoding='utf-8') as f:
