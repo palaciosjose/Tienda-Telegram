@@ -4,7 +4,7 @@ import sys
 from navigation import nav_system
 
 
-def test_home_button_calls_main_menu(monkeypatch, tmp_path):
+def test_home_button_resets_navigation(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
 
@@ -13,10 +13,12 @@ def test_home_button_calls_main_menu(monkeypatch, tmp_path):
 
     called = {}
 
-    def fake_menu(cid, username, name):
-        called['menu'] = (cid, username, name)
+    def fake_show(cid, message=None):
+        called['select'] = (cid, message)
 
-    monkeypatch.setattr(main, 'send_main_menu', fake_menu)
+    monkeypatch.setattr(main, 'show_shop_selection', fake_show)
+    reset_called = []
+    monkeypatch.setattr(main.nav_system, 'reset', lambda cid: reset_called.append(cid))
     monkeypatch.setattr(main.bot, 'answer_callback_query', lambda *a, **k: None, raising=False)
 
     class Msg:
@@ -29,7 +31,8 @@ def test_home_button_calls_main_menu(monkeypatch, tmp_path):
     cb = types.SimpleNamespace(data='Volver al inicio', message=Msg(), id='1', from_user=types.SimpleNamespace(username='u'))
     main.inline(cb)
 
-    assert called.get('menu') == (5, 'u', 'N')
+    assert called.get('select')[0] == 5
+    assert reset_called == [5]
 
 def test_universal_navigation_buttons(monkeypatch):
     class Markup:
