@@ -300,25 +300,10 @@ def message_send(message):
         if is_admin:
             if message.chat.id not in in_admin:
                 in_admin.append(message.chat.id)
-            if role == "superadmin":
-                adminka.show_superadmin_dashboard(message.chat.id, user_id)
+            if message.chat.id == config.admin_id:
+                show_main_interface(message.chat.id, user_id)
             else:
-                stores = db.get_user_stores(user_id)
-                if len(stores) == 1:
-                    store = stores[0]
-                    dop.set_user_shop(user_id, store["id"])
-                    adminka.show_store_dashboard_unified(
-                        message.chat.id, store["id"], store["name"]
-                    )
-                else:
-                    default_id = dop.get_user_shop(user_id)
-                    store = next((s for s in stores if s["id"] == default_id), None)
-                    if store:
-                        adminka.show_store_dashboard_unified(
-                            message.chat.id, store["id"], store["name"]
-                        )
-                    else:
-                        show_main_interface(message.chat.id, user_id)
+                adminka.show_individual_admin_menu(message.chat.id)
         else:
             bot.send_message(message.chat.id, '❌ No tienes permisos')
         return

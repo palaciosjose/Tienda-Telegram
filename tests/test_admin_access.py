@@ -54,10 +54,10 @@ def test_adm_command_allows_admin(monkeypatch, tmp_path):
 
     called = {}
 
-    def fake_dash(cid, sid_arg, name):
-        called['args'] = (cid, sid_arg, name)
+    def fake_menu(cid):
+        called['cid'] = cid
 
-    monkeypatch.setattr(adminka, 'show_store_dashboard_unified', fake_dash)
+    monkeypatch.setattr(adminka, 'show_individual_admin_menu', fake_menu)
 
     class Msg:
         def __init__(self):
@@ -68,7 +68,41 @@ def test_adm_command_allows_admin(monkeypatch, tmp_path):
 
     main.message_send(Msg())
 
-    assert called.get('args') == (1, sid, 'S1')
+    assert called.get('cid') == 1
+
+
+def test_adm_command_superadmin_dashboard(monkeypatch, tmp_path):
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    sid = dop.create_shop("S1", admin_id=1)
+    import sqlite3, files
+    conn = sqlite3.connect(files.main_db)
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE platform_config (platform TEXT, is_active INTEGER, shop_id INTEGER)")
+    cur.execute("INSERT INTO platform_config (platform, is_active, shop_id) VALUES ('telethon', 0, ?)", (sid,))
+    conn.commit()
+    conn.close()
+    config.admin_id = 1
+    os.environ["TELEGRAM_ADMIN_ID"] = "1"
+    monkeypatch.setattr(dop, "get_adminlist", lambda: [1])
+
+    called = {}
+
+    def fake_interface(cid, uid):
+        called['args'] = (cid, uid)
+
+    monkeypatch.setattr(main, 'show_main_interface', fake_interface)
+
+    class Msg:
+        def __init__(self):
+            self.text = '/adm'
+            self.chat = types.SimpleNamespace(id=1, username='admin')
+            self.from_user = types.SimpleNamespace(first_name='Admin')
+            self.content_type = 'text'
+
+    main.message_send(Msg())
+
+    assert called.get('args') == (1, 1)
 
 
 def test_shop_callback_opens_dashboard(monkeypatch, tmp_path):

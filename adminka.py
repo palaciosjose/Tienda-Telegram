@@ -93,6 +93,17 @@ def show_main_admin_menu(chat_id):
     )
 
 
+def show_individual_admin_menu(chat_id):
+    """Mostrar el menú de administración clásico para administradores de tienda.
+
+    Este menú reutiliza las opciones tradicionales de gestión de tiendas,
+    manteniendo la compatibilidad con la lógica previa del bot.  Actualmente
+    es un alias directo de :func:`show_main_admin_menu`.
+    """
+
+    return show_main_admin_menu(chat_id)
+
+
 def session_expired(chat_id):
     """Informar al usuario que la sesión expiró y volver al menú principal"""
     send_long_message(bot, chat_id, '❌ La sesión anterior se perdió.')
