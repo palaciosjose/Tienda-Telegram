@@ -756,7 +756,11 @@ def inline(callback):
 
         elif callback.data == 'Volver al inicio':
             nav_system.reset(callback.message.chat.id)
-            show_shop_selection(callback.message.chat.id, callback.message)
+            user_id = getattr(callback.from_user, 'id', None)
+            if user_id is not None:
+                show_main_interface(callback.message.chat.id, user_id)
+            else:
+                show_shop_selection(callback.message.chat.id, callback.message)
             
         elif callback.data == 'Comprar':
             try:

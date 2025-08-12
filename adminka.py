@@ -287,18 +287,16 @@ def show_discount_menu(chat_id):
     status = "Activado ✅" if config_dis["enabled"] else "Desactivado ❌"
     show_fake = "Sí" if config_dis["show_fake_price"] else "No"
 
-    toggle = "Desactivar descuentos" if config_dis["enabled"] else "Activar descuentos"
-    toggle_fake = (
-        "Ocultar precios tachados" if config_dis["show_fake_price"] else "Mostrar precios tachados"
-    )
+    toggle = "🚫 Desactivar" if config_dis["enabled"] else "✅ Activar"
+    toggle_fake = "🖍️ Tachado"  # toggle show_fake_price
 
     quick_actions = [
         (toggle, "discount_toggle"),
-        ("Cambiar texto", "discount_text"),
-        ("Cambiar porcentaje", "discount_percent"),
+        ("✏️ Texto", "discount_text"),
+        ("📉 %", "discount_percent"),
         (toggle_fake, "discount_fake"),
-        ("Nuevo descuento", "discount_new"),
-        ("Vista previa", "discount_preview"),
+        ("➕ Nuevo", "discount_new"),
+        ("👀 Vista", "discount_preview"),
     ]
 
     key = nav_system.create_universal_navigation(
@@ -354,7 +352,6 @@ def show_superadmin_dashboard(chat_id, user_id):
     total_sales = total_revenue = total_topics = total_campaigns = 0
     active_daemons = 0
 
-    store_rows = []
     for sid, name, daemon_status in shops:
         try:
             cur.execute(
@@ -398,16 +395,6 @@ def show_superadmin_dashboard(chat_id, user_id):
         if daemon_status not in ("-", None, "stopped"):
             active_daemons += 1
 
-        store_rows.append(
-            [
-                telebot.types.InlineKeyboardButton(
-                    text=f"📊 {name}", callback_data=f"view_store_{sid}"
-                ),
-                telebot.types.InlineKeyboardButton(
-                    text="⚙️ Administrar", callback_data=f"admin_store_{sid}"
-                ),
-            ]
-        )
 
     global_campaign_limit = int(os.getenv("GLOBAL_CAMPAIGN_LIMIT", 0))
     global_topic_limit = int(os.getenv("GLOBAL_TOPIC_LIMIT", 0))
@@ -425,24 +412,24 @@ def show_superadmin_dashboard(chat_id, user_id):
 
     message_lines = [summary_box, "", "📊 *Resumen de tiendas*"]
 
-    quick = [
-        ("🏪 Tiendas", "admin_list_shops"),
-        ("➕ Crear Tienda", "admin_create_shop"),
-        ("🤖 Telethon Global", "global_telethon_config"),
-        ("🔁 Reiniciar todos", "global_restart_daemons"),
-        ("📊 BI Reporte", "admin_bi_report"),
-    ]
+    quick_actions = []
+    for sid, name, _ in shops:
+        quick_actions.append((f"📊 {name}", f"view_store_{sid}"))
+        quick_actions.append(("⚙️ Administrar", f"admin_store_{sid}"))
 
-    base_key = nav_system.create_universal_navigation(
-        chat_id, "superadmin_dashboard", quick
+    quick_actions.extend(
+        [
+            ("🏪 Tiendas", "admin_list_shops"),
+            ("➕ Crear Tienda", "admin_create_shop"),
+            ("🤖 Telethon Global", "global_telethon_config"),
+            ("🔁 Reiniciar todos", "global_restart_daemons"),
+            ("📊 BI Reporte", "admin_bi_report"),
+        ]
     )
-    key = telebot.types.InlineKeyboardMarkup()
-    for row in store_rows:
-        key.add(*row)
 
-    for row in getattr(base_key, "keyboard", []):
-        key.add(*row)
-
+    key = nav_system.create_universal_navigation(
+        chat_id, "superadmin_dashboard", quick_actions
+    )
     send_long_message(
         bot, chat_id, "\n".join(message_lines), markup=key, parse_mode="Markdown"
     )
