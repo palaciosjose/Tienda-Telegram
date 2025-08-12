@@ -415,7 +415,7 @@ def test_telethon_wizard_activation(monkeypatch, tmp_path):
     monkeypatch.setattr(
         telethon_config.telethon_manager,
         'detect_topics',
-        lambda sid: actions.append(('detect', sid)),
+        lambda sid, progress_callback=None: actions.append(('detect', sid)),
     )
     monkeypatch.setattr(
         telethon_config.telethon_manager,
@@ -428,7 +428,6 @@ def test_telethon_wizard_activation(monkeypatch, tmp_path):
         lambda sid: actions.append(('activate', sid)),
     )
 
-    telethon_config.start_telethon_wizard(1, 7)
     telethon_config.start_telethon_wizard(1, 7)
     telethon_config.start_telethon_wizard(1, 7)
     telethon_config.start_telethon_wizard(1, 7)
