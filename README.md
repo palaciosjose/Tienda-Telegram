@@ -462,16 +462,20 @@ python expiration_cron.py
 `TELEGRAM_TOKEN`. Si no se define, tomará el valor configurado en `config.py` a
 través de `bot_instance.py`.
 
-## Interfaz con BotFather
+## Interfaz BotFather
 
-Para obtener un token de bot habla con **@BotFather** en Telegram.  
+Para obtener un token de bot habla con **@BotFather** en Telegram.
 El flujo básico es:
 
 ```text
-Usuario: /newbot
-BotFather: How are we going to call it?
-Usuario: MiTiendaBot
-BotFather: Perfecto, ahora el nombre de usuario...
+╔══════════════════════════════════╗
+║ Usuario: /newbot                 ║
+║ BotFather: How are we going to   ║
+║ call it?                         ║
+║ Usuario: MiTiendaBot             ║
+║ BotFather: Perfecto, ahora el    ║
+║ nombre de usuario...             ║
+╚══════════════════════════════════╝
 ```
 
 ![Chat de BotFather](https://via.placeholder.com/500x120.png?text=BotFather+setup)
@@ -479,33 +483,54 @@ BotFather: Perfecto, ahora el nombre de usuario...
 BotFather responderá con un token similar a `123456:ABC-DEF1234` que debes colocar
 en la variable `TELEGRAM_BOT_TOKEN` de tu `.env`.
 
-## Dashboards
+## Dashboard SuperAdmin
 
-El bot ofrece distintos paneles de control accesibles desde la
-interfaz de administración. El superadmin ve un resumen global de tiendas,
-mientras que cada administrador dispone de su panel de marketing y métricas.
+El superadmin accede a un panel global con todas las tiendas y su actividad
+reciente. Desde aquí puede navegar a cada tienda o crear una nueva.
 
 ```text
-📊 Resumen de tiendas
-1. Demo (ventas 10/100)
-2. Pruebas (ventas 3/50)
+╔═════════════════════════════╗
+║ 📊 Resumen de tiendas       ║
+╠═════════════════════════════╣
+║ 1. Demo (ventas 10/100)     ║
+║ 2. Pruebas (ventas 3/50)    ║
+╚═════════════════════════════╝
+[➕ Nueva tienda] [⬅️ Atrás]
 ```
 
 ![Dashboard simulado](https://via.placeholder.com/500x160.png?text=Dashboard)
 
-## Wizard de Telethon
+## Marketing + Telethon
 
-El asistente de Telethon guía paso a paso para detectar topics, enviar una
-prueba y activar el daemon. Para iniciar el proceso:
+El panel de marketing permite programar campañas y usar Telethon para enviar
+promociones masivas. La interfaz integra botones rápidos para disparar el
+envío o ajustar la programación.
 
 ```text
-Administrador: /telethon
-Bot: [---] 0% Detectando topics...
-Bot: [###] 66% Prueba enviada
-Bot: [###] 100% Telethon activado correctamente.
+╔══════════════════════════════╗
+║ 📣 Campaña de Marketing      ║
+╠══════════════════════════════╣
+║ ✔️ Programada                ║
+╚══════════════════════════════╝
+[🚀 Enviar ahora] [📆 Cambiar horario]
 ```
 
-![Wizard de Telethon](https://via.placeholder.com/500x160.png?text=Telethon+wizard)
+![Marketing + Telethon](https://via.placeholder.com/500x160.png?text=Marketing+Telethon)
+
+## Configuración automática Telethon
+
+El asistente de Telethon detecta topics y habilita el daemon de manera
+automática. Basta con ejecutar `/telethon` y seguir el progreso en pantalla.
+
+```text
+╔══════════════════════════╗
+║ 🔧 Auto-configuración    ║
+╠══════════════════════════╣
+║ [###-------] 50%         ║
+╚══════════════════════════╝
+```
+
+![Configuración automática](https://via.placeholder.com/500x160.png?text=Auto+Telethon)
 
 ## Navegación universal
 
@@ -519,6 +544,18 @@ volver al anterior sin perder contexto.
 ```
 
 ![Navegación universal](https://via.placeholder.com/500x80.png?text=Navigation)
+
+## Mensajes largos con `send_long_message`
+
+Para respetar el límite de 4096 caracteres de Telegram, la función
+`send_long_message` divide el texto en partes y adjunta el teclado solo en el
+primer mensaje.
+
+```python
+from utils.message_chunker import send_long_message
+
+send_long_message(bot, chat_id, texto_largo, markup=teclado, parse_mode="Markdown")
+```
 
 ## Configuración de límites del SuperAdmin
 
@@ -548,13 +585,14 @@ PY
 
 ## Pruebas
 
-Para ejecutar las pruebas automatizadas instala las dependencias y luego ejecuta:
+Para ejecutar la **suite de pruebas** instala las dependencias y luego corre:
 
 ```bash
 pytest
 ```
 
-Para una única prueba puedes indicar su ruta o filtrar por nombre:
+Este comando recorre todos los archivos en `tests/` y muestra un resumen. Para
+una única prueba puedes indicar su ruta o filtrar por nombre:
 
 ```bash
 pytest tests/test_metrics_dashboard.py
