@@ -238,12 +238,19 @@ El último permite personalizar el texto y la multimedia que verán los usuarios
 
 ## Panel de administración
 
-Al entrar verás botones para gestionar las distintas funciones del bot. Entre
+### Interfaz principal
+
+Al entrar verás botones con nombres cortos y emojis para gestionar las distintas funciones del bot. Entre
 ellos se incluyen **💬 Respuestas**, **📦 Surtido**, **➕ Producto**, **💰 Pagos**,
 **📊 Stats**, **Resumen de compradores**, **📣 Difusión**, **📢 Marketing**,
 **💸 Descuentos** y **⚙️ Otros**.
 
-### Dashboard de tiendas y navegación
+```
+[💬 Respuestas] [📦 Surtido] [💰 Pagos]
+[📊 Stats] [📣 Difusión] [⚙️ Otros]
+```
+
+### Dashboard de tienda
 
 Cada tienda dispone de un *dashboard* con estadísticas rápidas y accesos
 directos. Un mensaje típico luce así:
@@ -486,7 +493,9 @@ en la variable `TELEGRAM_BOT_TOKEN` de tu `.env`.
 ## Dashboard SuperAdmin
 
 El superadmin accede a un panel global con todas las tiendas y su actividad
-reciente. Desde aquí puede navegar a cada tienda o crear una nueva.
+reciente. Los botones usan nombres concisos como `[➕ Nueva tienda]` para crear
+nuevos espacios y la navegación universal para regresar. Desde aquí puede
+navegar a cada tienda o crear una nueva.
 
 ```text
 ╔═════════════════════════════╗
@@ -535,8 +544,14 @@ automática. Basta con ejecutar `/telethon` y seguir el progreso en pantalla.
 ## Navegación universal
 
 El sistema de navegación registra la ruta de cada chat y añade botones
-estandarizados: atrás, actualizar, inicio y cancelar. Así, cualquier panel puede
-volver al anterior sin perder contexto.
+estandarizados. Cada uno ofrece una acción rápida:
+
+- 🏠 **Inicio**: vuelve al menú principal de la tienda.
+- ⬅️ **Atrás**: regresa al paso anterior.
+- 🔄 **Actualizar**: recarga la información mostrada.
+- ❌ **Cancelar**: cierra el flujo actual.
+
+Así, cualquier panel puede volver al anterior sin perder contexto.
 
 ```text
 📣 Panel de Marketing
@@ -544,6 +559,15 @@ volver al anterior sin perder contexto.
 ```
 
 ![Navegación universal](https://via.placeholder.com/500x80.png?text=Navigation)
+
+## Comandos `/start` y `/adm`
+
+Tras la migración a múltiples tiendas estos comandos se comportan así:
+
+- `/start` muestra la lista de tiendas disponibles y guarda la elección del usuario. Si ya tiene una tienda asignada, el comando lo lleva directo al menú principal.
+- `/adm` abre el selector de tiendas y las opciones de administración. Solo responde a los IDs autorizados; los demás reciben "No tienes permisos".
+
+Ambos comandos utilizan la navegación universal para moverse entre menús.
 
 ## Mensajes largos con `send_long_message`
 
