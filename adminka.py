@@ -103,11 +103,6 @@ def show_main_admin_menu(chat_id):
     )
 
 
-def show_individual_admin_menu(chat_id):
-    """Alias del menú principal para administradores de tienda."""
-    return show_main_admin_menu(chat_id)
-
-
 def session_expired(chat_id):
     """Informar al usuario que la sesión expiró y volver al menú principal"""
     send_long_message(bot, chat_id, "❌ La sesión anterior se perdió.")
@@ -179,13 +174,20 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
 
     quick_actions = [
         ("🏪 Tienda", "dash_shop_info"),
-        ("📦 Productos", "dash_products"),
-        ("📢 Marketing", "dash_marketing"),
+        ("📦 Surtido", "ad_surtido"),
+        ("➕ Producto", "ad_producto"),
+        ("💰 Pagos", "ad_pagos"),
+        ("📊 Stats", "ad_stats"),
+        ("📣 Difusión", "ad_difusion"),
+        ("👥 Clientes", "ad_resumen"),
+        ("📢 Marketing", "ad_marketing"),
         ("🤖 Telethon", "dash_telethon"),
         ("🧾 Reportes", "dash_reports"),
         ("⚙️ Config", "dash_config"),
+        ("🏷️ Categorías", "ad_categorias"),
+        ("💸 Descuentos", "ad_descuentos"),
+        ("⚙️ Otros", "ad_otros"),
         ("⬅️ Cambiar", "dash_change_store"),
-        ("🔄 Actualizar", f"dash_refresh_{store_id}"),
     ]
 
     key = nav_system.create_universal_navigation(

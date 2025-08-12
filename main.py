@@ -303,7 +303,17 @@ def message_send(message):
             if message.chat.id == config.admin_id:
                 show_main_interface(message.chat.id, user_id)
             else:
-                adminka.show_individual_admin_menu(message.chat.id)
+                shop_id = dop.get_shop_id(message.chat.id)
+                dop.set_user_shop(message.chat.id, shop_id)
+                try:
+                    con = db.get_db_connection()
+                    cur = con.cursor()
+                    cur.execute("SELECT name FROM shops WHERE id = ?", (shop_id,))
+                    row = cur.fetchone()
+                    name = row[0] if row else str(shop_id)
+                except Exception:
+                    name = str(shop_id)
+                adminka.show_store_dashboard_unified(message.chat.id, shop_id, name)
         else:
             bot.send_message(message.chat.id, '❌ No tienes permisos')
         return
