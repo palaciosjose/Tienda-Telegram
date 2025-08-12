@@ -6,6 +6,7 @@ import telethon_manager
 import datetime
 from utils.ascii_chart import sparkline
 from business_intelligence import generate_bi_report
+from utils.professional_box import render_box
 from advertising_system.admin_integration import (
     manager as advertising,
     set_shop_id,
@@ -336,9 +337,9 @@ def show_marketing_menu(chat_id):
 def show_superadmin_dashboard(chat_id, user_id):
     """Mostrar panel del super admin con métricas globales de tiendas.
 
-    Incluye ventas, topics, campañas y estado del daemon de Telethon para cada
-    tienda. Se añaden accesos rápidos para marketing, Telethon, reportes y
-    configuración."""
+    Se agregan métricas generales en un cuadro resaltado e incluye accesos
+    directos para la gestión de tiendas, control global de Telethon y
+    generación de reportes."""
 
     if user_id != config.admin_id:
         bot.send_message(chat_id, '❌ Acceso restringido.')
@@ -352,7 +353,10 @@ def show_superadmin_dashboard(chat_id, user_id):
     except Exception:
         shops = []
 
-    lines = ['📊 *Resumen de tiendas*']
+    total_sales = total_revenue = total_topics = total_campaigns = 0
+    active_daemons = 0
+
+    lines = []
     for sid, name, daemon_status in shops:
         try:
             cur.execute("SELECT is_active FROM platform_config WHERE platform='telethon' AND shop_id=?", (sid,))
@@ -380,6 +384,13 @@ def show_superadmin_dashboard(chat_id, user_id):
         except Exception:
             campaigns = 0
 
+        total_sales += count
+        total_revenue += total or 0
+        total_topics += topics
+        total_campaigns += campaigns
+        if daemon_status not in ('-', None, 'stopped'):
+            active_daemons += 1
+
         lines.extend([
             f"{sid}. {name}",
             f"   🛒 Ventas: {count}/{total or 0}",
@@ -389,14 +400,31 @@ def show_superadmin_dashboard(chat_id, user_id):
             f"   🔁 Daemon: {daemon_status}",
         ])
 
+    global_campaign_limit = int(os.getenv("GLOBAL_CAMPAIGN_LIMIT", 0))
+    global_topic_limit = int(os.getenv("GLOBAL_TOPIC_LIMIT", 0))
+    summary_box = render_box(
+        [
+            f"Ventas: {total_sales}/{total_revenue}",
+            f"Campañas: {total_campaigns}",
+            f"Topics: {total_topics}",
+            f"Daemons activos: {active_daemons}/{len(shops)}",
+            f"Límite campañas/día: {global_campaign_limit}",
+            f"Topics máximos: {global_topic_limit}",
+        ],
+        title="Resumen Global",
+    )
+
+    message_lines = [summary_box, '', '📊 *Resumen de tiendas*', *lines]
+
     quick = [
-        ('📣 Marketing', 'admin_marketing'),
-        ('🤖 Telethon', 'admin_telethon_config'),
-        ('🧾 Reportes', 'admin_bi_report'),
-        ('⚙️ Config', 'admin_global_config'),
+        ('🏪 Tiendas', 'admin_list_shops'),
+        ('➕ Crear Tienda', 'admin_create_shop'),
+        ('🤖 Telethon Global', 'global_telethon_config'),
+        ('🔁 Reiniciar todos', 'global_restart_daemons'),
+        ('📊 BI Reporte', 'admin_bi_report'),
     ]
     key = nav_system.create_universal_navigation(chat_id, 'superadmin_dashboard', quick)
-    send_long_message(bot, chat_id, '\n'.join(lines), markup=key, parse_mode='Markdown')
+    send_long_message(bot, chat_id, '\n'.join(message_lines), markup=key, parse_mode='Markdown')
 
 
 # Registrar el dashboard principal del superadmin en el sistema de navegación
@@ -469,6 +497,18 @@ def show_bi_report(chat_id, user_id):
 
 nav_system.register("admin_list_shops", lambda c, u: admin_list_shops(c, u))
 nav_system.register("admin_create_shop", lambda c, u: admin_create_shop(c, u))
+nav_system.register(
+    "global_telethon_config",
+    lambda c, u: telethon_config.global_telethon_config(
+        "admin_telethon_config", c, u
+    ),
+)
+nav_system.register(
+    "global_restart_daemons",
+    lambda c, u: telethon_config.global_telethon_config(
+        "global_restart_daemons", c, u
+    ),
+)
 
 
 def _admin_bi_report_nav(chat_id, user_id):
@@ -491,7 +531,7 @@ def route_superadmin_callback(callback_data, chat_id, user_id):
         Identifier of the user triggering the callback.
     """
 
-    if callback_data == "admin_telethon_config":
+    if callback_data in ("admin_telethon_config", "global_telethon_config", "global_restart_daemons"):
         # Telethon configuration uses a dedicated handler that expects the
         # original callback data as first argument.
         telethon_config.global_telethon_config(callback_data, chat_id, user_id)

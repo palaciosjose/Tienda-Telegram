@@ -49,7 +49,7 @@ def global_telethon_config(callback_data, chat_id, user_id=None):
     if user_id is None:
         user_id = chat_id
 
-    if callback_data == "admin_telethon_config":
+    if callback_data in ("admin_telethon_config", "global_telethon_config"):
         show_global_telethon_config(chat_id, user_id)
         return
 
