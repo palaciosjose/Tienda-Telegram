@@ -287,21 +287,30 @@ nav_system.register("quick_stats", quick_stats)
 
 
 def show_discount_menu(chat_id):
-    """Mostrar menú de configuración de descuentos"""
+    """Mostrar menú de configuración de descuentos con navegación unificada."""
     shop_id = dop.get_shop_id(chat_id)
     config_dis = dop.get_discount_config(shop_id)
 
     status = 'Activado ✅' if config_dis['enabled'] else 'Desactivado ❌'
     show_fake = 'Sí' if config_dis['show_fake_price'] else 'No'
 
-    user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
     toggle = 'Desactivar descuentos' if config_dis['enabled'] else 'Activar descuentos'
-    toggle_fake = 'Ocultar precios tachados' if config_dis['show_fake_price'] else 'Mostrar precios tachados'
-    user_markup.row(toggle)
-    user_markup.row('Cambiar texto', 'Cambiar porcentaje')
-    user_markup.row(toggle_fake)
-    user_markup.row('Nuevo descuento')
-    user_markup.row('Vista previa', 'Volver al menú principal')
+    toggle_fake = (
+        'Ocultar precios tachados' if config_dis['show_fake_price'] else 'Mostrar precios tachados'
+    )
+
+    quick_actions = [
+        (toggle, 'discount_toggle'),
+        ('Cambiar texto', 'discount_text'),
+        ('Cambiar porcentaje', 'discount_percent'),
+        (toggle_fake, 'discount_fake'),
+        ('Nuevo descuento', 'discount_new'),
+        ('Vista previa', 'discount_preview'),
+    ]
+
+    key = nav_system.create_universal_navigation(
+        chat_id, 'discount_menu', quick_actions
+    )
 
     message = (
         f"💸 *Configuración de Descuentos*\n\n"
@@ -311,7 +320,7 @@ def show_discount_menu(chat_id):
         f"Mostrar precios tachados: {show_fake}"
     )
 
-    bot.send_message(chat_id, message, reply_markup=user_markup, parse_mode='Markdown')
+    send_long_message(bot, chat_id, message, markup=key, parse_mode='Markdown')
 
 
 def show_product_menu(chat_id):
@@ -342,7 +351,7 @@ def show_superadmin_dashboard(chat_id, user_id):
     generación de reportes."""
 
     if user_id != config.admin_id:
-        bot.send_message(chat_id, '❌ Acceso restringido.')
+        send_long_message(bot, chat_id, '❌ Acceso restringido.')
         return
 
     con = db.get_db_connection()
@@ -444,7 +453,7 @@ def admin_list_shops(chat_id, user_id):
         key = nav_system.create_universal_navigation(
             chat_id, "admin_list_shops_denied"
         )
-        bot.send_message(chat_id, "❌ Acceso restringido.", reply_markup=key)
+        send_long_message(bot, chat_id, "❌ Acceso restringido.", markup=key)
         return
     shops = dop.list_shops()
     lines = ["*Tiendas registradas:*"]
@@ -466,10 +475,10 @@ def admin_create_shop(chat_id, user_id):
         key = nav_system.create_universal_navigation(
             chat_id, "admin_create_shop_denied"
         )
-        bot.send_message(chat_id, "❌ Acceso restringido.", reply_markup=key)
+        send_long_message(bot, chat_id, "❌ Acceso restringido.", markup=key)
         return
     key = nav_system.create_universal_navigation(chat_id, "admin_create_shop_name")
-    bot.send_message(chat_id, "Ingrese el nombre de la nueva tienda:", reply_markup=key)
+    send_long_message(bot, chat_id, "Ingrese el nombre de la nueva tienda:", markup=key)
     set_state(chat_id, 900, "main")
 
 
@@ -3240,13 +3249,14 @@ def text_analytics(message_text, chat_id):
             try:
                 admin_id = int(message_text.strip())
             except ValueError:
-                bot.send_message(chat_id, "❌ ID inválido. Intente nuevamente.")
+                send_long_message(bot, chat_id, "❌ ID inválido. Intente nuevamente.")
                 return
             with shelve.open(files.sost_bd) as bd:
                 name = bd.pop(f"{chat_id}_new_shop_name", "Tienda")
                 del bd[str(chat_id)]
             shop_id = dop.create_shop(name, admin_id=admin_id)
-            bot.send_message(
+            send_long_message(
+                bot,
                 chat_id,
                 f"✅ Tienda '{name}' creada con ID {shop_id}",
             )
@@ -3264,8 +3274,23 @@ nav_system.register('ad_difusion', lambda chat_id, store_id: in_adminka(chat_id,
 nav_system.register('ad_resumen', lambda chat_id, store_id: in_adminka(chat_id, '👥 Clientes', None, None))
 nav_system.register('ad_marketing', lambda chat_id, store_id: in_adminka(chat_id, '📢 Marketing', None, None))
 nav_system.register('ad_categorias', lambda chat_id, store_id: in_adminka(chat_id, '🏷️ Categorías', None, None))
-nav_system.register('ad_descuentos', lambda chat_id, store_id: in_adminka(chat_id, '💸 Descuentos', None, None))
+nav_system.register('ad_descuentos', lambda chat_id, store_id: show_discount_menu(chat_id))
 nav_system.register('ad_otros', lambda chat_id, store_id: in_adminka(chat_id, '⚙️ Otros', None, None))
+
+
+def _discount_placeholder(chat_id, store_id):
+    send_long_message(bot, chat_id, '🚧 Función de descuentos en desarrollo.')
+
+
+for _cb in [
+    'discount_toggle',
+    'discount_text',
+    'discount_percent',
+    'discount_fake',
+    'discount_new',
+    'discount_preview',
+]:
+    nav_system.register(_cb, _discount_placeholder)
 
 def ad_inline(callback_data, chat_id, message_id):
     shop_id = dop.get_shop_id(chat_id)

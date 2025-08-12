@@ -113,3 +113,60 @@ def test_back_and_refresh_callbacks(monkeypatch):
     assert called[-1] == 'page2'
     nav_system.handle(nav_system.back(50), 50, 0)
     assert called[-1] == 'page1'
+
+
+def test_admin_menus_have_standard_buttons(monkeypatch):
+    _patch_telebot(monkeypatch)
+    import adminka
+
+    markups = []
+
+    def fake_send(bot, chat_id, text, markup=None, **kwargs):
+        markups.append(markup)
+
+    monkeypatch.setattr(adminka, 'send_long_message', fake_send)
+    monkeypatch.setattr(adminka.dop, 'get_shop_id', lambda cid: 1)
+    monkeypatch.setattr(
+        adminka.dop,
+        'get_discount_config',
+        lambda sid: {
+            'enabled': False,
+            'show_fake_price': False,
+            'text': 't',
+            'multiplier': 1,
+        },
+    )
+    monkeypatch.setattr(adminka.dop, 'get_campaign_limit', lambda sid: 0)
+    monkeypatch.setattr(adminka.advertising, 'get_all_campaigns', lambda: [])
+
+    class DummyScheduler:
+        def __init__(self, *a, **k):
+            pass
+
+        def get_pending_sends(self):
+            return []
+
+    monkeypatch.setattr(adminka, 'CampaignScheduler', DummyScheduler)
+    monkeypatch.setattr(adminka.telethon_manager, 'get_stats', lambda sid: {'active': False})
+    monkeypatch.setattr(adminka.db, 'get_store_stats', lambda sid: {})
+    monkeypatch.setattr(adminka.db, 'get_sales_timeseries', lambda sid, days=7: [])
+    monkeypatch.setattr(adminka.db, 'get_campaign_timeseries', lambda sid, days=7: [])
+    monkeypatch.setattr(adminka.db, 'get_store_topics', lambda sid: [])
+    monkeypatch.setattr(adminka.db, 'get_db_connection', lambda: (_ for _ in ()).throw(Exception()))
+
+    menus = [
+        lambda: adminka.show_main_admin_menu(1),
+        lambda: adminka.show_store_dashboard_unified(1, 1, 'Shop'),
+        lambda: adminka.show_marketing_unified(1, 1),
+        lambda: adminka.show_discount_menu(1),
+    ]
+
+    for menu in menus:
+        markups.clear()
+        nav_system.reset(1)
+        menu()
+        markup = markups[-1]
+        texts = [btn.text for row in markup.keyboard for btn in row]
+        assert '🏠 Inicio' in texts
+        assert '🔄 Actualizar' in texts
+        assert '❌ Cancelar' in texts
