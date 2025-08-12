@@ -199,6 +199,44 @@ def test_interface_regular_user(monkeypatch, tmp_path):
     assert "S2" in sent_text and "🤖" in sent_text
 
 
+def test_interface_includes_stats_lines(monkeypatch, tmp_path):
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+
+    # Create two stores for the user
+    sid1 = dop.create_shop("S1", admin_id=1)
+    sid2 = dop.create_shop("S2", admin_id=1)
+
+    monkeypatch.setattr(main.db, "get_user_role", lambda uid: "user")
+
+    monkeypatch.setattr(
+        main.db,
+        "get_user_stores",
+        lambda uid: [
+            {"id": sid1, "name": "S1", "status": True, "telethon_active": True},
+            {"id": sid2, "name": "S2", "status": False, "telethon_active": False},
+        ],
+    )
+
+    monkeypatch.setattr(
+        main.db,
+        "get_store_overview",
+        lambda sid: {"products": 1, "users": 2, "topics": 3},
+    )
+
+    calls.clear()
+    main.show_main_interface(5, 1)
+
+    sent_text = calls[0][1][1]
+    assert "🤖 STREAMING MANAGER" in sent_text
+    assert sent_text.count("📦 1 | 👥 2 | 🎯 3") == 2
+
+    markup = calls[0][2]["reply_markup"]
+    callbacks = [b.callback_data for b in markup.buttons]
+    assert f"info_store_{sid1}" in callbacks
+    assert f"info_store_{sid2}" in callbacks
+
+
 def test_interface_pagination(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()

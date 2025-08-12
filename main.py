@@ -144,6 +144,10 @@ def show_main_interface(chat_id, user_id):
     for store in stores:
         status_emoji = "🟢" if store.get("status") else "🔴"
         telethon_emoji = "🤖" if store.get("telethon_active") else "⚪"
+        stats = db.get_store_overview(store["id"])
+        info_text = (
+            f"📦 {stats['products']} | 👥 {stats['users']} | 🎯 {stats['topics']}"
+        )
 
         key.add(
             telebot.types.InlineKeyboardButton(
@@ -151,13 +155,29 @@ def show_main_interface(chat_id, user_id):
                 callback_data=f"SHOP_{store['id']}",
             )
         )
+        key.add(
+            telebot.types.InlineKeyboardButton(
+                text=info_text,
+                callback_data=f"info_store_{store['id']}",
+            )
+        )
 
-        lines.append(f"{store['name']} {status_emoji} {telethon_emoji}")
+        lines.append(
+            f"{store['name']} {status_emoji} {telethon_emoji}\n{info_text}"
+        )
 
     # Compose final message text with optional list of stores
-    text = "Seleccione una tienda:"
+    header = (
+        "🤖 STREAMING MANAGER\n"
+        "Administra tus tiendas y revisa su estado.\n"
+        "Estados: 🟢 activa | 🔴 inactiva | 🤖 telethon activo | ⚪ telethon inactivo"
+    )
+    text = header
     if lines:
-        text += "\n" + "\n".join(lines)
+        text += "\n\n" + "\n".join(lines)
+
+    if len(text) > 4096:
+        logging.warning("Main interface message length %d exceeds Telegram limit", len(text))
 
     send_long_message(bot, chat_id, text, markup=key)
 
