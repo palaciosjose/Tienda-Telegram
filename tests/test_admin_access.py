@@ -54,10 +54,10 @@ def test_adm_command_allows_admin(monkeypatch, tmp_path):
 
     called = {}
 
-    def fake_menu(cid):
-        called['cid'] = cid
+    def fake_dash(cid, sid_arg, name):
+        called['args'] = (cid, sid_arg, name)
 
-    monkeypatch.setattr(adminka, 'show_individual_admin_menu', fake_menu)
+    monkeypatch.setattr(adminka, 'show_store_dashboard_unified', fake_dash)
 
     class Msg:
         def __init__(self):
@@ -68,7 +68,7 @@ def test_adm_command_allows_admin(monkeypatch, tmp_path):
 
     main.message_send(Msg())
 
-    assert called.get('cid') == 1
+    assert called.get('args') == (1, sid, 'S1')
 
 
 def test_adm_command_superadmin_dashboard(monkeypatch, tmp_path):
