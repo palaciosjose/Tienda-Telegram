@@ -486,6 +486,28 @@ def inline(callback):
                 callback.data, callback.message.chat.id, callback.from_user.id
             )
             return
+        elif callback.data.startswith('view_store_'):
+            shop_id = int(callback.data.replace('view_store_', ''))
+            dop.set_user_shop(callback.message.chat.id, shop_id)
+            try:
+                con = db.get_db_connection()
+                cur = con.cursor()
+                cur.execute("SELECT name FROM shops WHERE id = ?", (shop_id,))
+                row = cur.fetchone()
+                name = row[0] if row else str(shop_id)
+            except Exception:
+                name = str(shop_id)
+            adminka.show_store_dashboard_unified(
+                callback.message.chat.id, shop_id, name
+            )
+            return
+        elif callback.data.startswith('admin_store_'):
+            shop_id = int(callback.data.replace('admin_store_', ''))
+            dop.set_user_shop(callback.message.chat.id, shop_id)
+            if callback.message.chat.id not in in_admin:
+                in_admin.append(callback.message.chat.id)
+            adminka.show_main_admin_menu(callback.message.chat.id)
+            return
         elif callback.data.startswith('SHOP_'):
             shop_id = int(callback.data.replace('SHOP_', ''))
             dop.set_user_shop(callback.message.chat.id, shop_id)
