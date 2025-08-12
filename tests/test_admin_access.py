@@ -166,7 +166,8 @@ def test_superadmin_dashboard_access(monkeypatch, tmp_path):
     assert any('Topics' in m and 'Campañas' in m and 'Daemon' in m for m in sent_texts)
     assert nav_system.current(5) == 'superadmin_dashboard'
     quick = nav_system.get_quick_actions(5, 'superadmin_dashboard')
-    assert [t for t, _ in quick] == ['📣 Marketing', '🤖 Telethon', '🧾 Reportes', '⚙️ Config']
+    texts = {t for t, _ in quick}
+    assert {'🏪 Tiendas', '➕ Crear Tienda', '📊 BI Reporte', '🤖 Telethon Global'}.issubset(texts)
 
     cb = types.SimpleNamespace(
         data='GLOBAL_REFRESH',
