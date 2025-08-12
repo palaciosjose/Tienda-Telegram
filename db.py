@@ -144,6 +144,45 @@ def get_store_stats(store_id):
     return stats
 
 
+def get_store_overview(store_id):
+    """Return counts of products, users and topics for a store."""
+    overview = {"products": 0, "users": 0, "topics": 0}
+    try:
+        con = get_db_connection()
+        cur = con.cursor()
+
+        try:
+            cur.execute(
+                "SELECT COUNT(*) FROM goods WHERE shop_id = ?",
+                (store_id,),
+            )
+            overview["products"] = cur.fetchone()[0]
+        except Exception:
+            pass
+
+        try:
+            cur.execute(
+                "SELECT COUNT(*) FROM shop_users WHERE shop_id = ?",
+                (store_id,),
+            )
+            overview["users"] = cur.fetchone()[0]
+        except Exception:
+            pass
+
+        try:
+            cur.execute(
+                "SELECT COUNT(*) FROM store_topics WHERE store_id = ?",
+                (store_id,),
+            )
+            overview["topics"] = cur.fetchone()[0]
+        except Exception:
+            pass
+    except Exception:
+        return overview
+
+    return overview
+
+
 def _ensure_global_config_table(cur):
     """Ensure the global_config table exists."""
     cur.execute(
