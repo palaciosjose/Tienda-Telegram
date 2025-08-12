@@ -260,7 +260,6 @@ def message_send(message):
     role = db.get_user_role(user_id)
     admin_list = dop.get_adminlist()
     is_admin = user_id in admin_list or role == "superadmin"
-    has_shop = dop.user_has_shop(user_id)
 
     first_word = ""
     if isinstance(message.text, str):
@@ -289,17 +288,11 @@ def message_send(message):
                 show_product_details(message.chat.id, product, shop_id)
                 dop.user_loger(chat_id=message.chat.id)
                 return
-
-        if is_admin:
-            show_main_interface(message.chat.id, user_id)
-        elif has_shop:
-            send_main_menu(
-                message.chat.id,
-                message.chat.username,
-                message.from_user.first_name,
-            )
-        else:
-            show_shop_selection(message.chat.id)
+        if dop.get_sost(message.chat.id):
+            with shelve.open(files.sost_bd) as bd:
+                if str(message.chat.id) in bd:
+                    del bd[str(message.chat.id)]
+        show_shop_selection(message.chat.id)
         dop.user_loger(chat_id=message.chat.id)
         return
 

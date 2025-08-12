@@ -3,7 +3,7 @@ import types
 from tests.test_shop_info import setup_main
 
 
-def test_start_sends_main_menu_existing_user(monkeypatch, tmp_path):
+def test_start_shows_selector_existing_user(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
 
@@ -14,12 +14,12 @@ def test_start_sends_main_menu_existing_user(monkeypatch, tmp_path):
     monkeypatch.setattr(dop, "get_sost", lambda cid: False)
     monkeypatch.setattr(dop, "user_loger", lambda chat_id=0: None)
 
-    called = {}
+    called = []
 
-    def fake_menu(cid, username, name):
-        called["args"] = (cid, username, name)
+    def fake_select(cid, message=None):
+        called.append((cid, message))
 
-    monkeypatch.setattr(main, "send_main_menu", fake_menu)
+    monkeypatch.setattr(main, "show_shop_selection", fake_select)
 
     class Msg:
         def __init__(self):
@@ -30,7 +30,7 @@ def test_start_sends_main_menu_existing_user(monkeypatch, tmp_path):
 
     main.message_send(Msg())
 
-    assert called.get("args") == (5, "u", "N")
+    assert called == [(5, None)]
 
 
 def test_start_shows_selection_new_user(monkeypatch, tmp_path):
