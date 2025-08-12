@@ -376,7 +376,7 @@ def show_superadmin_dashboard(chat_id, user_id):
     total_sales = total_revenue = total_topics = total_campaigns = 0
     active_daemons = 0
 
-    lines = []
+    store_rows = []
     for sid, name, daemon_status in shops:
         try:
             cur.execute("SELECT is_active FROM platform_config WHERE platform='telethon' AND shop_id=?", (sid,))
@@ -411,13 +411,13 @@ def show_superadmin_dashboard(chat_id, user_id):
         if daemon_status not in ('-', None, 'stopped'):
             active_daemons += 1
 
-        lines.extend([
-            f"{sid}. {name}",
-            f"   🛒 Ventas: {count}/{total or 0}",
-            f"   🗂️ Topics: {topics}",
-            f"   📣 Campañas: {campaigns}",
-            f"   🤖 Telethon: {tele_txt}",
-            f"   🔁 Daemon: {daemon_status}",
+        store_rows.append([
+            telebot.types.InlineKeyboardButton(
+                text=f"📊 {name}", callback_data=f"view_store_{sid}"
+            ),
+            telebot.types.InlineKeyboardButton(
+                text="⚙️ Administrar", callback_data=f"admin_store_{sid}"
+            ),
         ])
 
     global_campaign_limit = int(os.getenv("GLOBAL_CAMPAIGN_LIMIT", 0))
@@ -434,7 +434,7 @@ def show_superadmin_dashboard(chat_id, user_id):
         title="Resumen Global",
     )
 
-    message_lines = [summary_box, '', '📊 *Resumen de tiendas*', *lines]
+    message_lines = [summary_box, '', '📊 *Resumen de tiendas*']
 
     quick = [
         ('🏪 Tiendas', 'admin_list_shops'),
@@ -443,8 +443,24 @@ def show_superadmin_dashboard(chat_id, user_id):
         ('🔁 Reiniciar todos', 'global_restart_daemons'),
         ('📊 BI Reporte', 'admin_bi_report'),
     ]
-    key = nav_system.create_universal_navigation(chat_id, 'superadmin_dashboard', quick)
-    send_long_message(bot, chat_id, '\n'.join(message_lines), markup=key, parse_mode='Markdown')
+
+    base_key = nav_system.create_universal_navigation(
+        chat_id, 'superadmin_dashboard', quick
+    )
+    key = telebot.types.InlineKeyboardMarkup()
+    for row in store_rows:
+        key.add(*row)
+
+    if hasattr(base_key, 'keyboard'):
+        for row in getattr(base_key, 'keyboard'):
+            key.add(*row)
+    else:
+        for btn in getattr(base_key, 'buttons', []):
+            key.add(btn)
+
+    send_long_message(
+        bot, chat_id, '\n'.join(message_lines), markup=key, parse_mode='Markdown'
+    )
 
 
 # Registrar el dashboard principal del superadmin en el sistema de navegación
