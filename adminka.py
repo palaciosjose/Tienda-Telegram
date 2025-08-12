@@ -185,46 +185,73 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
 
 
 def show_marketing_unified(chat_id, store_id):
-    """Mostrar un *dashboard* compacto para la sección de marketing.
+    """Mostrar un panel compacto con campañas, programación y Telethon.
 
-    Resumen de campañas activas, programaciones pendientes y estado del bot
-    de Telethon.  A la vez crea un pequeño menú de acciones rápidas mediante
-    ``InlineKeyboardMarkup`` para que el administrador pueda actuar sin salir
-    del panel.
+    Presenta tres secciones principales: campañas activas (listadas por nombre),
+    programaciones pendientes y el estado del subsistema Telethon.  También
+    muestra el límite de campañas configurado para la tienda y ofrece un menú de
+    acciones rápidas.  El mensaje se envía usando :func:`send_long_message` para
+    respetar el límite de 4096 caracteres de Telegram.
     """
-    # Se intenta obtener la lista completa de campañas, ignorando errores.
+
+    # Obtener campañas y límite configurado
     try:
         campaigns = advertising.get_all_campaigns()
     except Exception:
         campaigns = []
+    limit = dop.get_campaign_limit(store_id)
 
+    # Campañas activas y programación pendiente
+    active = [c for c in campaigns if c.get("status") == "active"]
     scheduler = CampaignScheduler(files.main_db, shop_id=store_id)
     try:
         pending = scheduler.get_pending_sends()
     except Exception:
         pending = []
 
+    # Estado de Telethon
     tele_stats = telethon_manager.get_stats(store_id)
     tele_state = "Activo" if tele_stats.get("active") else "Inactivo"
-    active_count = len([c for c in campaigns if c.get("status") == "active"])
 
-    lines = [
-        "📣 *Panel de Marketing*",
-        f"Campañas activas: {active_count}",
-        f"Programaciones pendientes: {len(pending)}",
-        f"Telethon: {tele_state}",
-    ]
+    lines = ["📣 *Panel de Marketing*"]
+    if limit:
+        lines.append(f"⚡ {len(active)}/{limit}")
+    else:
+        lines.append(f"⚡ {len(active)}")
+
+    lines.append("")
+    lines.append("*Campañas activas:*")
+    if active:
+        for camp in active:
+            lines.append(f"- {camp.get('id')}. {camp.get('name', '')}")
+    else:
+        lines.append("- Ninguna")
+
+    lines.append("")
+    lines.append("*Programación:*")
+    if pending:
+        for p in pending:
+            # En la consulta de scheduler el nombre de la campaña está al final
+            name = p[8] if len(p) > 8 else f"ID {p[1] if len(p)>1 else '?'}"
+            lines.append(f"- {name}")
+    else:
+        lines.append("- Ninguna")
+
+    lines.append("")
+    lines.append("*Telethon:*")
+    lines.append(f"Estado: {tele_state}")
+
+    message = "\n".join(lines)
+
     quick_actions = [
         ("➕ Nueva", "quick_new_campaign"),
-        ("📋 Activas", "quick_stats"),
         ("🤖 Telethon", "quick_telethon"),
+        ("📊 Stats", "quick_stats"),
     ]
     key = nav_system.create_universal_navigation(
         chat_id, f"marketing_{store_id}", quick_actions
     )
-    send_long_message(
-        bot, chat_id, "\n".join(lines), markup=key, parse_mode="Markdown"
-    )
+    send_long_message(bot, chat_id, message, markup=key, parse_mode="Markdown")
 
 
 def quick_new_campaign(chat_id, store_id):

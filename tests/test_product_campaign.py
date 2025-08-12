@@ -131,22 +131,60 @@ def test_show_marketing_unified(monkeypatch, tmp_path):
     sid = dop.create_shop("S1", admin_id=1)
 
     monkeypatch.setattr(main.adminka, "bot", bot)
-    monkeypatch.setattr(main.adminka.advertising, "get_all_campaigns", lambda: [{"id": 1, "status": "active"}])
+    monkeypatch.setattr(
+        main.adminka.advertising,
+        "get_all_campaigns",
+        lambda: [{"id": 1, "name": "A", "status": "active"}],
+    )
     monkeypatch.setattr(
         main.adminka,
         "CampaignScheduler",
-        lambda *a, **k: types.SimpleNamespace(get_pending_sends=lambda: [1]),
+        lambda *a, **k: types.SimpleNamespace(get_pending_sends=lambda: [(0, 0, 0, 0, 0, 0, 0, 0, "N")]),
     )
     monkeypatch.setattr(main.adminka.telethon_manager, "get_stats", lambda s: {"active": True})
+    monkeypatch.setattr(main.adminka.dop, "get_campaign_limit", lambda s: 10)
 
     main.adminka.show_marketing_unified(5, sid)
 
-    assert calls[-1][0] == "send_message"
-    buttons = calls[-1][2]["reply_markup"].buttons
+    send = calls[-1]
+    assert send[0] == "send_message"
+    text = send[1][1]
+    assert "⚡ 1/10" in text
+    buttons = send[2]["reply_markup"].buttons
     texts = [b.text for b in buttons]
     assert "➕ Nueva" in texts
-    assert "📋 Activas" in texts
+    assert "📊 Stats" in texts
     assert "🤖 Telethon" in texts
+
+
+def test_marketing_unified_splits_long_message(monkeypatch, tmp_path):
+    """Long lists of campaigns should be split into multiple messages."""
+    dop, main, calls, bot = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    sid = dop.create_shop("S1", admin_id=1)
+
+    monkeypatch.setattr(main.adminka, "bot", bot)
+
+    def many():
+        return [
+            {"id": i, "name": f"Camp{i}", "status": "active"}
+            for i in range(1, 301)
+        ]
+
+    monkeypatch.setattr(main.adminka.advertising, "get_all_campaigns", many)
+    monkeypatch.setattr(
+        main.adminka,
+        "CampaignScheduler",
+        lambda *a, **k: types.SimpleNamespace(get_pending_sends=lambda: []),
+    )
+    monkeypatch.setattr(main.adminka.telethon_manager, "get_stats", lambda s: {"active": False})
+    monkeypatch.setattr(main.adminka.dop, "get_campaign_limit", lambda s: 0)
+
+    main.adminka.show_marketing_unified(5, sid)
+
+    send_calls = [c for c in calls if c[0] == "send_message"]
+    assert len(send_calls) > 1
+    assert send_calls[0][1][1].startswith("1/")
 
 
 def test_quick_actions_dispatch(monkeypatch, tmp_path):
