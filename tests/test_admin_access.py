@@ -8,6 +8,14 @@ from navigation import nav_system
 def test_adm_command_requires_permissions(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
+    sid = dop.create_shop("S1", admin_id=1)
+    import sqlite3, files
+    conn = sqlite3.connect(files.main_db)
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE platform_config (platform TEXT, is_active INTEGER, shop_id INTEGER)")
+    cur.execute("INSERT INTO platform_config (platform, is_active, shop_id) VALUES ('telethon', 0, ?)", (sid,))
+    conn.commit()
+    conn.close()
     config.admin_id = 1
     os.environ["TELEGRAM_ADMIN_ID"] = "1"
     monkeypatch.setattr(dop, "get_adminlist", lambda: [1])
@@ -113,6 +121,14 @@ def test_superadmin_dashboard_access(monkeypatch, tmp_path):
     sys.modules.pop('adminka', None)
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
+    sid = dop.create_shop("S1", admin_id=1)
+    import sqlite3, files
+    conn = sqlite3.connect(files.main_db)
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE platform_config (platform TEXT, is_active INTEGER, shop_id INTEGER)")
+    cur.execute("INSERT INTO platform_config (platform, is_active, shop_id) VALUES ('telethon', 0, ?)", (sid,))
+    conn.commit()
+    conn.close()
     config.admin_id = 1
     os.environ["TELEGRAM_ADMIN_ID"] = "1"
 
@@ -127,6 +143,13 @@ def test_superadmin_dashboard_access(monkeypatch, tmp_path):
     import adminka as adm
     original = adm.show_superadmin_dashboard
 
+    sent_texts = []
+
+    def fake_send(bot, cid, text, **kw):
+        sent_texts.append(text)
+
+    monkeypatch.setattr(adm, 'send_long_message', fake_send)
+
     def wrapper(cid, uid):
         called['dash'] += 1
         return original(cid, uid)
@@ -140,18 +163,10 @@ def test_superadmin_dashboard_access(monkeypatch, tmp_path):
         from_user=types.SimpleNamespace(id=1),
     )
     main.inline(cb)
-    messages = []
-    for c in calls:
-        if c[0] == 'send_message':
-            if len(c[1]) > 1:
-                messages.append(c[1][1])
-            else:
-                messages.append(c[2].get('text', ''))
-
-    assert any('+----+' in m for m in messages)
+    assert any('Topics' in m and 'Campañas' in m and 'Daemon' in m for m in sent_texts)
     assert nav_system.current(5) == 'superadmin_dashboard'
     quick = nav_system.get_quick_actions(5, 'superadmin_dashboard')
-    assert [t for t, _ in quick] == ['📋 Ver tiendas', '➕ Crear', '🧠 BI Reporte', '🤖 Telethon']
+    assert [t for t, _ in quick] == ['📣 Marketing', '🤖 Telethon', '🧾 Reportes', '⚙️ Config']
 
     cb = types.SimpleNamespace(
         data='GLOBAL_REFRESH',

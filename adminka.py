@@ -114,6 +114,29 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
     tele_stats = telethon_manager.get_stats(store_id)
     sales_ts = db.get_sales_timeseries(store_id)
     camp_ts = db.get_campaign_timeseries(store_id)
+    topics = db.get_store_topics(store_id)
+
+    campaign_count = 0
+    daemon_status = '-'
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        try:
+            cur.execute("SELECT COUNT(*) FROM campaigns WHERE shop_id=?", (store_id,))
+            campaign_count = cur.fetchone()[0]
+        except Exception:
+            campaign_count = 0
+        try:
+            cur.execute(
+                "SELECT telethon_daemon_status FROM shops WHERE id=?",
+                (store_id,),
+            )
+            row = cur.fetchone()
+            daemon_status = row[0] if row else '-'
+        except Exception:
+            daemon_status = '-'
+    except Exception:
+        pass
 
     # Construimos el mensaje línea por línea para facilitar su extensión y
     # evitar fallos si alguna estadística no está disponible.
@@ -129,13 +152,16 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
     if camp_ts:
         vals = [c['count'] for c in camp_ts]
         delta = vals[-1] - (vals[-2] if len(vals) > 1 else 0)
-        lines.append(f"📣 Campañas 7d: {sparkline(vals)} ({delta:+})")
+        lines.append(f"📈 Envíos 7d: {sparkline(vals)} ({delta:+})")
+    lines.append(f"🗂️ Topics: {len(topics)}")
+    lines.append(f"📣 Campañas: {campaign_count}")
 
     tele_state = "Activo" if tele_stats.get("active") else "Inactivo"
     lines.append(f"🤖 Telethon: {tele_state}")
     sent = tele_stats.get("sent", 0)
     if sent:
         lines.append(f"✉️ Envíos Telethon: {sent}")
+    lines.append(f"🔁 Daemon: {daemon_status}")
 
     message = "\n".join(lines)
 
@@ -144,6 +170,8 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
         ("📦 Productos", "dash_products"),
         ("📢 Marketing", "dash_marketing"),
         ("🤖 Telethon", "dash_telethon"),
+        ("🧾 Reportes", "dash_reports"),
+        ("⚙️ Config", "dash_config"),
         ("⬅️ Cambiar", "dash_change_store"),
         ("🔄 Actualizar", f"dash_refresh_{store_id}"),
     ]
@@ -279,7 +307,12 @@ def show_marketing_menu(chat_id):
 
 
 def show_superadmin_dashboard(chat_id, user_id):
-    """Mostrar panel principal del super admin con información de tiendas."""
+    """Mostrar panel del super admin con métricas globales de tiendas.
+
+    Incluye ventas, topics, campañas y estado del daemon de Telethon para cada
+    tienda. Se añaden accesos rápidos para marketing, Telethon, reportes y
+    configuración."""
+
     if user_id != config.admin_id:
         bot.send_message(chat_id, '❌ Acceso restringido.')
         return
@@ -287,23 +320,15 @@ def show_superadmin_dashboard(chat_id, user_id):
     con = db.get_db_connection()
     cur = con.cursor()
     try:
-        cur.execute('SELECT id, name FROM shops ORDER BY id')
+        cur.execute('SELECT id, name, COALESCE(telethon_daemon_status, "-") FROM shops ORDER BY id')
         shops = cur.fetchall()
     except Exception:
         shops = []
 
-    header = '+----+--------------------+----------+--------------+'
-    lines = [
-        header,
-        '| ID | Tienda             | Telethon | Ventas (u/$) |',
-        header,
-    ]
-    for sid, name in shops:
+    lines = ['📊 *Resumen de tiendas*']
+    for sid, name, daemon_status in shops:
         try:
-            cur.execute(
-                "SELECT is_active FROM platform_config WHERE platform='telethon' AND shop_id=?",
-                (sid,),
-            )
+            cur.execute("SELECT is_active FROM platform_config WHERE platform='telethon' AND shop_id=?", (sid,))
             row = cur.fetchone()
             tele_active = bool(row[0]) if row else False
         except Exception:
@@ -311,29 +336,40 @@ def show_superadmin_dashboard(chat_id, user_id):
         tele_txt = '✅' if tele_active else '❌'
 
         try:
-            cur.execute(
-                "SELECT COUNT(*), COALESCE(SUM(price),0) FROM purchases WHERE shop_id=?",
-                (sid,),
-            )
+            cur.execute("SELECT COUNT(*), COALESCE(SUM(price),0) FROM purchases WHERE shop_id=?", (sid,))
             count, total = cur.fetchone()
         except Exception:
             count, total = 0, 0
 
-        lines.append(
-            f"| {sid:<2} | {name:<18} | {tele_txt:^8} | {count:>3}/{total or 0:<7} |"
-        )
+        try:
+            cur.execute("SELECT COUNT(*) FROM store_topics WHERE store_id=?", (sid,))
+            topics = cur.fetchone()[0]
+        except Exception:
+            topics = 0
 
-    lines.append(header)
-    table = '\n'.join(lines)
+        try:
+            cur.execute("SELECT COUNT(*) FROM campaigns WHERE shop_id=?", (sid,))
+            campaigns = cur.fetchone()[0]
+        except Exception:
+            campaigns = 0
+
+        lines.extend([
+            f"{sid}. {name}",
+            f"   🛒 Ventas: {count}/{total or 0}",
+            f"   🗂️ Topics: {topics}",
+            f"   📣 Campañas: {campaigns}",
+            f"   🤖 Telethon: {tele_txt}",
+            f"   🔁 Daemon: {daemon_status}",
+        ])
 
     quick = [
-        ('📋 Ver tiendas', 'admin_list_shops'),
-        ('➕ Crear', 'admin_create_shop'),
-        ('🧠 BI Reporte', 'admin_bi_report'),
+        ('📣 Marketing', 'admin_marketing'),
         ('🤖 Telethon', 'admin_telethon_config'),
+        ('🧾 Reportes', 'admin_bi_report'),
+        ('⚙️ Config', 'admin_global_config'),
     ]
     key = nav_system.create_universal_navigation(chat_id, 'superadmin_dashboard', quick)
-    send_long_message(bot, chat_id, table, markup=key)
+    send_long_message(bot, chat_id, '\n'.join(lines), markup=key, parse_mode='Markdown')
 
 
 # Registrar el dashboard principal del superadmin en el sistema de navegación
