@@ -6,7 +6,7 @@ sys.path.append(str(Path(__file__).resolve().parent))
 from test_shop_info import setup_main
 
 
-def test_client_gets_main_menu(monkeypatch, tmp_path):
+def test_start_shows_selector_existing_user(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
     sid = dop.create_shop("S1", admin_id=1)
@@ -18,10 +18,10 @@ def test_client_gets_main_menu(monkeypatch, tmp_path):
 
     called = {}
 
-    def fake_send(chat_id, username, name):
-        called["args"] = (chat_id, username, name)
+    def fake_select(chat_id, message=None):
+        called["args"] = (chat_id, message)
 
-    monkeypatch.setattr(main, "send_main_menu", fake_send)
+    monkeypatch.setattr(main, "show_shop_selection", fake_select)
 
     class Msg:
         def __init__(self):
@@ -31,10 +31,10 @@ def test_client_gets_main_menu(monkeypatch, tmp_path):
             self.content_type = "text"
 
     main.message_send(Msg())
-    assert called.get("args") == (5, "u", "N")
+    assert called.get("args") == (5, None)
 
 
-def test_admin_start_shows_interface(monkeypatch, tmp_path):
+def test_admin_start_shows_selector(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
     sid = dop.create_shop("S1", admin_id=1)
@@ -46,10 +46,10 @@ def test_admin_start_shows_interface(monkeypatch, tmp_path):
 
     called = {}
 
-    def fake_interface(chat_id, user_id):
-        called["args"] = (chat_id, user_id)
+    def fake_select(chat_id, message=None):
+        called["args"] = (chat_id, message)
 
-    monkeypatch.setattr(main, "show_main_interface", fake_interface)
+    monkeypatch.setattr(main, "show_shop_selection", fake_select)
 
     class Msg:
         def __init__(self):
@@ -59,7 +59,7 @@ def test_admin_start_shows_interface(monkeypatch, tmp_path):
             self.content_type = "text"
 
     main.message_send(Msg())
-    assert called.get("args") == (1, 1)
+    assert called.get("args") == (1, None)
 
 
 def test_shop_callback_loads_dashboard(monkeypatch, tmp_path):
