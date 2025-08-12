@@ -1,35 +1,38 @@
-from typing import Iterable, List, Optional
-
+from typing import Iterable, Optional
 
 def render_box(lines: Iterable[str], title: Optional[str] = None) -> str:
-    """Render text inside a simple box for nicer messages.
-
-    Parameters
-    ----------
-    lines:
-        Iterable of lines to include inside the box.
-    title:
-        Optional title shown at the top separated by a horizontal rule.
     """
-    # Ensure we have a list so it can be iterated multiple times
-    if isinstance(lines, str):
-        lines = [lines]
-    else:
-        lines = list(lines)
-
-    width = 0
-    for line in lines:
-        width = max(width, len(line))
+    Renders a professional ASCII box with optional title.
+    Compatible with Python 3.8+
+    """
+    if not lines:
+        lines = [""]
+    
+    lines_list = list(lines)
+    if not lines_list:
+        lines_list = [""]
+    
+    # Calculate max width
+    max_width = max(len(line) for line in lines_list)
+    
     if title:
-        width = max(width, len(title))
-    horiz = "─" * (width + 2)
-    top = f"┌{horiz}┐"
-    bottom = f"└{horiz}┘"
-    out_lines: List[str] = [top]
+        max_width = max(max_width, len(title) + 4)
+    
+    max_width = max(max_width, 20)
+    
+    # Build box
+    result = []
+    result.append("┌" + "─" * (max_width + 2) + "┐")
+    
     if title:
-        out_lines.append(f"│ {title.ljust(width)} │")
-        out_lines.append(f"├{horiz}┤")
-    for line in lines:
-        out_lines.append(f"│ {line.ljust(width)} │")
-    out_lines.append(bottom)
-    return "\n".join(out_lines)
+        title_line = f"│ {title.center(max_width)} │"
+        result.append(title_line)
+        result.append("├" + "─" * (max_width + 2) + "┤")
+    
+    for line in lines_list:
+        content_line = f"│ {line.ljust(max_width)} │"
+        result.append(content_line)
+    
+    result.append("└" + "─" * (max_width + 2) + "┘")
+    
+    return "\n".join(result)
