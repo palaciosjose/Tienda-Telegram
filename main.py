@@ -525,9 +525,6 @@ def inline(callback):
                 callback.message.chat.id, shop_id, name
             )
             return
-        elif callback.message.chat.id in in_admin:
-            adminka.ad_inline(callback.data, callback.message.chat.id, callback.message.message_id)
-
         elif callback.data.startswith('SELECT_SHOP_'):
             shop_id = int(callback.data.replace('SELECT_SHOP_', ''))
             dop.set_user_shop(callback.message.chat.id, shop_id)
