@@ -76,7 +76,7 @@ def send_main_menu(chat_id, username, name):
         ('🛍️ Catálogo', 'Ir al catálogo de productos'),
         ('📜 Compras', 'Ver mis compras'),
         ('🔍 Buscar', 'Buscar productos'),
-        ('🔄 Cambiar', 'Cambiar tienda'),
+        ('🔄 Cambiar tienda', 'Cambiar tienda'),
     ]
     key = nav_system.create_universal_navigation(chat_id, 'main_menu', quick_actions)
     if dop.check_message('start'):
