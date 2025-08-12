@@ -1,30 +1,49 @@
 import telebot
 from bot_instance import bot
 import telethon_manager
+import db
 from navigation import nav_system
 from utils.message_chunker import send_long_message
 
 
 def show_telethon_dashboard(chat_id, store_id):
-    """Send a compact dashboard with Telethon stats and action buttons.
+    """Send a dashboard with Telethon metrics and helper actions.
 
-    The stats are pulled from :mod:`telethon_manager` and summarize whether
-    the Telethon daemon is active for the given store and how many messages
-    were sent.  Navigation relies on :func:`nav_system.create_universal_navigation`
-    which injects the standard "Inicio" and "❌ Cancelar" buttons alongside the
-    provided quick actions for detecting topics, testing a message send and
-    restarting the daemon.
+    The panel displays basic statistics about the Telethon integration along
+    with quick action buttons to manage the daemon.  It also lists the topics
+    currently configured for the given store so administrators can quickly
+    verify what will be targeted during broadcasts.
     """
 
     stats = telethon_manager.get_stats(store_id) or {}
-    status = "Activo" if stats.get("active") else "Inactivo"
-    sent = stats.get("sent", 0)
+    topics = db.get_store_topics(store_id)
 
     lines = [
         "🤖 *Panel de Telethon*",
-        f"Estado: {status}",
-        f"Enviados: {sent}",
+        "",
+        "*Métricas:*",
+        f"🔁 Daemon: {stats.get('daemon', '-')}",
+        f"🔌 API: {'OK' if stats.get('api') else 'No'}",
+        f"🧵 Topics: {stats.get('topics', 0)}",
+        f"📤 Último envío: {stats.get('last_send', '-')}",
+        "",
+        "*Acciones rápidas:*",
+        "- Detectar topics",
+        "",
+        "*Mantenimiento:*",
+        "- Prueba de envío",
+        "- Reiniciar daemon",
+        "",
+        "*Topics configurados:*",
     ]
+
+    if topics:
+        for t in topics:
+            lines.append(
+                f"• {t.get('group_name', '')} ({t.get('topic_id', 0)})"
+            )
+    else:
+        lines.append("Ninguno")
 
     quick_actions = [
         ("🧵 Topics", f"telethon_detect_{store_id}"),
