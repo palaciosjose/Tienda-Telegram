@@ -462,6 +462,90 @@ python expiration_cron.py
 `TELEGRAM_TOKEN`. Si no se define, tomará el valor configurado en `config.py` a
 través de `bot_instance.py`.
 
+## Interfaz con BotFather
+
+Para obtener un token de bot habla con **@BotFather** en Telegram.  
+El flujo básico es:
+
+```text
+Usuario: /newbot
+BotFather: How are we going to call it?
+Usuario: MiTiendaBot
+BotFather: Perfecto, ahora el nombre de usuario...
+```
+
+![Chat de BotFather](https://via.placeholder.com/500x120.png?text=BotFather+setup)
+
+BotFather responderá con un token similar a `123456:ABC-DEF1234` que debes colocar
+en la variable `TELEGRAM_BOT_TOKEN` de tu `.env`.
+
+## Dashboards
+
+El bot ofrece distintos paneles de control accesibles desde la
+interfaz de administración. El superadmin ve un resumen global de tiendas,
+mientras que cada administrador dispone de su panel de marketing y métricas.
+
+```text
+📊 Resumen de tiendas
+1. Demo (ventas 10/100)
+2. Pruebas (ventas 3/50)
+```
+
+![Dashboard simulado](https://via.placeholder.com/500x160.png?text=Dashboard)
+
+## Wizard de Telethon
+
+El asistente de Telethon guía paso a paso para detectar topics, enviar una
+prueba y activar el daemon. Para iniciar el proceso:
+
+```text
+Administrador: /telethon
+Bot: [---] 0% Detectando topics...
+Bot: [###] 66% Prueba enviada
+Bot: [###] 100% Telethon activado correctamente.
+```
+
+![Wizard de Telethon](https://via.placeholder.com/500x160.png?text=Telethon+wizard)
+
+## Navegación universal
+
+El sistema de navegación registra la ruta de cada chat y añade botones
+estandarizados: atrás, actualizar, inicio y cancelar. Así, cualquier panel puede
+volver al anterior sin perder contexto.
+
+```text
+📣 Panel de Marketing
+[⬅️ Atrás] [🔄 Actualizar] [🏠 Inicio] [❌ Cancelar]
+```
+
+![Navegación universal](https://via.placeholder.com/500x80.png?text=Navigation)
+
+## Configuración de límites del SuperAdmin
+
+El superadmin (ID definido en `TELEGRAM_ADMIN_ID`) puede fijar un límite de
+campañas por tienda desde **⚙️ Config → Configurar límite de campañas**.  
+Tras seleccionar la opción, el bot solicitará el ID de la tienda y el nuevo
+valor:
+
+```text
+Bot: Ingrese el ID de la tienda a configurar:
+Usuario: 1
+Bot: Límite actual: 3
+      Ingresa el nuevo límite de campañas:
+Usuario: 5
+Bot: ✔️ Límite actualizado.
+```
+
+También es posible ajustar límites globales directamente desde la consola:
+
+```bash
+python - <<'PY'
+import db
+# Máximo de campañas global por día
+db.update_global_limit('daily_limit', 7)
+PY
+```
+
 ## Pruebas
 
 Para ejecutar las pruebas automatizadas instala las dependencias y luego ejecuta:
@@ -469,6 +553,15 @@ Para ejecutar las pruebas automatizadas instala las dependencias y luego ejecuta
 ```bash
 pytest
 ```
+
+Para una única prueba puedes indicar su ruta o filtrar por nombre:
+
+```bash
+pytest tests/test_metrics_dashboard.py
+pytest -k "navigation"
+```
+
+El resultado debería mostrar todos los tests en verde.
 
 ## Depuración
 
