@@ -144,7 +144,7 @@ def test_route_callback_detect_topics(monkeypatch):
     monkeypatch.setattr(telethon_manager, "detect_topics", lambda s: "resumen")
 
     smb = streaming_module.StreamingManagerBot(DummyBot())
-    smb.route_callback("telethon_detect_5", 99)
+    smb.route_callback("quick_detect_5", 99)
 
     assert msgs == ["resumen"]
     buttons = [b.text for row in markups[0].keyboard for b in row]

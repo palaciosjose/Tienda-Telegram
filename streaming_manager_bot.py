@@ -16,9 +16,12 @@ class StreamingManagerBot:
         self.router = {
             "telethon_dashboard": self.quick_dashboard,
             "telethon_detect": self.quick_detect,
+            "quick_detect": self.quick_detect,
             "start_auto_detection": self.quick_start_auto_detection,
             "telethon_test": self.quick_test,
+            "quick_test": self.quick_test,
             "telethon_restart": self.quick_restart,
+            "quick_restart": self.quick_restart,
         }
 
     # --- individual handlers -------------------------------------------------

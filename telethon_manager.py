@@ -31,7 +31,15 @@ def get_stats(shop_id):
     available, keeping the function robust for tests where a minimal schema is
     used."""
 
-    stats = {"active": False, "sent": 0, "daemon": "-", "api": False, "topics": 0, "last_send": "-"}
+    stats = {
+        "active": False,
+        "sent": 0,
+        "daemon": "-",
+        "api": False,
+        "topics": 0,
+        "last_send": "-",
+        "last_activity": "-",
+    }
     try:
         con = db.get_db_connection()
         cur = con.cursor()
@@ -54,10 +62,16 @@ def get_stats(shop_id):
         except Exception:
             pass
         try:
-            cur.execute("SELECT telethon_daemon_status FROM shops WHERE id=?", (shop_id,))
+            cur.execute(
+                "SELECT telethon_daemon_status, telethon_last_activity FROM shops WHERE id=?",
+                (shop_id,),
+            )
             row = cur.fetchone()
-            if row and row[0]:
-                stats["daemon"] = row[0]
+            if row:
+                if row[0]:
+                    stats["daemon"] = row[0]
+                if row[1]:
+                    stats["last_activity"] = row[1]
         except Exception:
             pass
         try:
