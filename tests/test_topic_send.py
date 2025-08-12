@@ -305,13 +305,15 @@ def test_show_telethon_dashboard_buttons(monkeypatch):
     importlib.reload(telethon_dashboard)
     monkeypatch.setattr(telethon_dashboard.telethon_manager, 'get_stats', lambda s: {'active': True, 'sent': 0})
     monkeypatch.setattr(telethon_dashboard.db, 'get_store_topics', lambda sid: [])
+    monkeypatch.setattr(telethon_dashboard.db, 'get_daily_campaign_counts', lambda sid: {'current': 0, 'max': 0})
+    monkeypatch.setattr(telethon_dashboard.db, 'get_alerts', lambda limit=3: [])
 
     telethon_dashboard.show_telethon_dashboard(1, 5)
     markup = calls[0]
     cb_data = {b.callback_data for b in markup.buttons}
-    assert f'telethon_detect_5' in cb_data
-    assert f'telethon_test_5' in cb_data
-    assert f'telethon_restart_5' in cb_data
+    assert f'quick_detect_5' in cb_data
+    assert f'quick_test_5' in cb_data
+    assert f'quick_restart_5' in cb_data
 
 
 def test_streaming_manager_routes_telethon_actions(monkeypatch):
@@ -339,9 +341,9 @@ def test_streaming_manager_routes_telethon_actions(monkeypatch):
 
     sm = StreamingManagerBot(Bot())
     sm.route_callback('telethon_dashboard_3', 9)
-    sm.route_callback('telethon_detect_3', 9)
-    sm.route_callback('telethon_test_3', 9)
-    sm.route_callback('telethon_restart_3', 9)
+    sm.route_callback('quick_detect_3', 9)
+    sm.route_callback('quick_test_3', 9)
+    sm.route_callback('quick_restart_3', 9)
 
     assert ('dash', 9, 3) in actions
     assert ('detect', 3) in actions

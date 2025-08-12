@@ -89,6 +89,7 @@ def setup_main(monkeypatch, tmp_path):
     sys.modules.pop("db", None)
     sys.modules.pop("dop", None)
     sys.modules.pop("main", None)
+    sys.modules.pop("adminka", None)
     dop = importlib.import_module("dop")
     main = importlib.import_module("main")
 
