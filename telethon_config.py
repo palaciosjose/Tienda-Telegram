@@ -81,68 +81,26 @@ def global_telethon_config(callback_data, chat_id, user_id=None):
 
 
 def start_telethon_wizard(chat_id, store_id, action="next"):
-    """Guide a user through the Telethon configuration wizard."""
+    """Execute the Telethon configuration wizard step by step.
+
+    Each invocation advances the wizard for ``chat_id`` one step forward.  The
+    current position is persisted in :mod:`shelve` under ``telethon_step`` so the
+    process can be resumed later.  A simple text based progress bar is shown to
+    the user after each step.
+    """
+
     key = f"{chat_id}_telethon_step"
-    if action == "guide":
-        guide = (
-            "Guía de configuración:\n"
-            "1. Credenciales de API.\n"
-            "2. Grupo bridge.\n"
-            "3. Detección de topics.\n"
-            "4. Prueba de envío.\n"
-            "5. Activación."
-        )
-        send_long_message(bot, chat_id, guide)
-        return
+    total_steps = 3  # detection -> test -> activation
+
+    def _show_progress(current):
+        bar = "#" * current + "-" * (total_steps - current)
+        send_long_message(bot, chat_id, f"[{bar}] {int(current / total_steps * 100)}%")
 
     with shelve.open(files.sost_bd) as bd:
         step = bd.get(key, 0)
 
-        # Handle going backwards without executing side effects for the new step.
-        if action == "prev" and step > 0:
-            step -= 1
-            bd[key] = step
-            # Show the prompt for the new step and exit early.
-            if step == 0:
-                status = db.get_global_telethon_status()
-                msg = (
-                    "Faltan credenciales de Telethon. Configura API ID y API HASH primero."
-                    if not status.get("api_id") or not status.get("api_hash")
-                    else "Credenciales OK. Proporciona el ID del grupo bridge."
-                )
-                send_long_message(bot, chat_id, msg)
-            elif step == 1:
-                markup = telebot.types.InlineKeyboardMarkup()
-                markup.add(
-                    telebot.types.InlineKeyboardButton(
-                        text="⬅️ Atrás", callback_data=f"telethon_prev_{store_id}"
-                    )
-                )
-                send_long_message(
-                    bot,
-                    chat_id,
-                    "Credenciales OK. Proporciona el ID del grupo bridge.",
-                    markup=markup,
-                )
-            elif step == 2:
-                markup = telebot.types.InlineKeyboardMarkup()
-                markup.add(
-                    telebot.types.InlineKeyboardButton(
-                        text="⬅️ Atrás", callback_data=f"telethon_prev_{store_id}"
-                    )
-                )
-                send_long_message(
-                    bot,
-                    chat_id,
-                    "Detección de topics completada. Ejecuta una prueba.",
-                    markup=markup,
-                )
-            return
-
         status = db.get_global_telethon_status()
-
         if step == 0:
-            # Ensure API credentials exist before moving forward.
             if not status.get("api_id") or not status.get("api_hash"):
                 send_long_message(
                     bot,
@@ -151,57 +109,31 @@ def start_telethon_wizard(chat_id, store_id, action="next"):
                 )
                 bd[key] = 0
                 return
+
+            def progress(msg):
+                send_long_message(bot, chat_id, msg)
+
+            summary = telethon_manager.detect_topics(store_id, progress_callback=progress)
+            send_long_message(bot, chat_id, summary)
+            send_long_message(bot, chat_id, "Seleccionando topics automáticamente...")
+            telethon_manager.start_auto_detection(store_id, progress_callback=progress)
+            send_long_message(bot, chat_id, "Selección automática completada")
+
             bd[key] = 1
-            markup = telebot.types.InlineKeyboardMarkup()
-            markup.add(
-                telebot.types.InlineKeyboardButton(
-                    text="⬅️ Atrás", callback_data=f"telethon_prev_{store_id}"
-                )
-            )
-            send_long_message(
-                bot,
-                chat_id,
-                "Credenciales OK. Proporciona el ID del grupo bridge.",
-                markup=markup,
-            )
+            _show_progress(1)
+            send_long_message(bot, chat_id, "Detección de topics completada. Ejecuta una prueba.")
             return
 
         if step == 1:
-            telethon_manager.detect_topics(store_id)
-            bd[key] = 2
-            markup = telebot.types.InlineKeyboardMarkup()
-            markup.add(
-                telebot.types.InlineKeyboardButton(
-                    text="⬅️ Atrás", callback_data=f"telethon_prev_{store_id}"
-                )
-            )
-            send_long_message(
-                bot,
-                chat_id,
-                "Detección de topics completada. Ejecuta una prueba.",
-                markup=markup,
-            )
-            return
-
-        if step == 2:
             telethon_manager.test_send(store_id)
-            bd[key] = 3
-            markup = telebot.types.InlineKeyboardMarkup()
-            markup.add(
-                telebot.types.InlineKeyboardButton(
-                    text="⬅️ Atrás", callback_data=f"telethon_prev_{store_id}"
-                )
-            )
-            send_long_message(
-                bot,
-                chat_id,
-                "Prueba enviada. Activa el servicio.",
-                markup=markup,
-            )
+            bd[key] = 2
+            _show_progress(2)
+            send_long_message(bot, chat_id, "Prueba enviada. Activa el servicio.")
             return
 
-        if step >= 3:
+        if step >= 2:
             telethon_manager.restart_daemon(store_id)
+            _show_progress(3)
             send_long_message(bot, chat_id, "Telethon activado correctamente.")
             if key in bd:
                 del bd[key]

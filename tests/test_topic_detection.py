@@ -9,6 +9,7 @@ if str(root) not in sys.path:
 import telethon_manager
 import db
 import files
+import shelve
 
 
 def _setup_tmp_db(tmp_path, monkeypatch):
@@ -149,4 +150,73 @@ def test_route_callback_detect_topics(monkeypatch):
     buttons = [b.text for row in markups[0].keyboard for b in row]
     assert "Seleccionar todos" in buttons
     assert "Personalizar" in buttons
+
+
+def test_wizard_progress_and_auto_selection(monkeypatch, tmp_path):
+    """The telethon wizard should save progress and show progress bars."""
+
+    _setup_tmp_db(tmp_path, monkeypatch)
+
+    msgs = []
+    actions = []
+
+    class Bot:
+        def send_message(self, chat_id, text, **kw):
+            msgs.append(text)
+
+    class Markup:
+        pass
+
+    telebot_stub = types.SimpleNamespace(
+        types=types.SimpleNamespace(
+            InlineKeyboardMarkup=lambda: Markup(),
+            InlineKeyboardButton=lambda *a, **k: None,
+        )
+    )
+
+    monkeypatch.setitem(sys.modules, "telebot", telebot_stub)
+    monkeypatch.setitem(sys.modules, "bot_instance", types.SimpleNamespace(bot=Bot()))
+
+    import importlib, telethon_config
+    importlib.reload(telethon_config)
+
+    monkeypatch.setattr(telethon_config.files, "sost_bd", str(tmp_path / "sost.bd"))
+    monkeypatch.setattr(
+        telethon_config.db,
+        "get_global_telethon_status",
+        lambda: {"api_id": "1", "api_hash": "2"},
+    )
+
+    def fake_detect(store_id, progress_callback=lambda m: None):
+        progress_callback("[##------] 20%")
+        return "resumen"
+
+    def fake_auto(store_id, progress_callback=lambda m: None):
+        progress_callback("[######--] 60%")
+        return True
+
+    monkeypatch.setattr(telethon_config.telethon_manager, "detect_topics", fake_detect)
+    monkeypatch.setattr(telethon_config.telethon_manager, "start_auto_detection", fake_auto)
+    monkeypatch.setattr(
+        telethon_config.telethon_manager, "test_send", lambda s: actions.append("test")
+    )
+    monkeypatch.setattr(
+        telethon_config.telethon_manager,
+        "restart_daemon",
+        lambda s: actions.append("activate"),
+    )
+
+    telethon_config.start_telethon_wizard(1, 5)
+    with shelve.open(telethon_config.files.sost_bd) as bd:
+        assert bd["1_telethon_step"] == 1
+    telethon_config.start_telethon_wizard(1, 5)
+    with shelve.open(telethon_config.files.sost_bd) as bd:
+        assert bd["1_telethon_step"] == 2
+    telethon_config.start_telethon_wizard(1, 5)
+    with shelve.open(telethon_config.files.sost_bd) as bd:
+        assert "1_telethon_step" not in bd
+
+    assert "resumen" in msgs
+    assert any(m.startswith("[") for m in msgs)
+    assert actions == ["test", "activate"]
 
