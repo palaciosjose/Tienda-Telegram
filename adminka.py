@@ -20,8 +20,13 @@ from navigation import nav_system
 from utils.message_chunker import send_long_message
 
 import logging
+import math
 
 logging.basicConfig(level=logging.INFO)
+
+# Track product pagination per chat and disabled products per store.
+_product_pages: dict[int, int] = {}
+_disabled_products: set[tuple[int, str]] = set()
 
 
 # ---------------------------------------------------------------------------
@@ -571,17 +576,78 @@ def admin_surtido(chat_id, store_id):
     show_product_menu(chat_id)
 
 
-def manage_products(chat_id, store_id):
-    """Listado simple de productos disponibles en la tienda."""
+def show_product_list(store_id, chat_id, page: int = 1):
+    """Show products with stock and inline controls."""
     goods = dop.get_goods(store_id)
-    lines = ["📦 *Productos disponibles:*"]
-    if goods:
-        lines.extend(f"- {g}" for g in goods)
+    if not goods:
+        key = nav_system.create_universal_navigation(chat_id, "product_list", store_id)
+        send_long_message(bot, chat_id, "No hay productos disponibles.", markup=key)
+        return
+
+    page_size = 5
+    total_pages = max(1, math.ceil(len(goods) / page_size))
+    page = max(1, min(page, total_pages))
+    _product_pages[chat_id] = page
+
+    start = (page - 1) * page_size
+    subset = goods[start : start + page_size]
+
+    lines = []
+    rows = []
+    for name in subset:
+        stock = dop.amount_of_goods(name, store_id)
+        active = (store_id, name) not in _disabled_products
+        status = "🟢" if active else "🔴"
+        lines.append(f"{status} {name} — {stock} unidades")
+
+        btn_edit = telebot.types.InlineKeyboardButton(
+            text="✏️", callback_data=f"product_edit_{name}"
+        )
+        toggle_text = "🚫" if active else "✅"
+        btn_toggle = telebot.types.InlineKeyboardButton(
+            text=toggle_text, callback_data=f"product_toggle_{name}"
+        )
+        rows.append([btn_edit, btn_toggle])
+
+    pagination = []
+    if page > 1:
+        pagination.append(
+            telebot.types.InlineKeyboardButton(
+                text="⬅️", callback_data=f"product_page_{page-1}"
+            )
+        )
+    if page < total_pages:
+        pagination.append(
+            telebot.types.InlineKeyboardButton(
+                text="➡️", callback_data=f"product_page_{page+1}"
+            )
+        )
+    if pagination:
+        rows.append(pagination)
+
+    key = nav_system.create_universal_navigation(chat_id, "product_list", store_id)
+    key.keyboard = rows + key.keyboard
+    send_long_message(bot, chat_id, "\n".join(lines), markup=key)
+
+
+def edit_product(chat_id, store_id, name):
+    """Placeholder for editing a product."""
+    send_long_message(bot, chat_id, f"Editar producto: {name}")
+
+
+def toggle_product(chat_id, store_id, name):
+    """Toggle product availability in memory and refresh list."""
+    key = (store_id, name)
+    if key in _disabled_products:
+        _disabled_products.remove(key)
     else:
-        lines.append("- Ninguno")
-    message = "\n".join(lines)
-    key = nav_system.create_universal_navigation(chat_id, "manage_products")
-    send_long_message(bot, chat_id, message, markup=key, parse_mode="Markdown")
+        _disabled_products.add(key)
+    page = _product_pages.get(chat_id, 1)
+    show_product_list(store_id, chat_id, page)
+
+
+def manage_products(chat_id, store_id):
+    show_product_list(store_id, chat_id)
 
 
 def config_payments(chat_id, store_id):
