@@ -571,21 +571,40 @@ def admin_surtido(chat_id, store_id):
     show_product_menu(chat_id)
 
 
-def admin_producto(chat_id, store_id):
-    key = nav_system.create_universal_navigation(chat_id, "admin_producto")
-    send_long_message(
-        bot, chat_id, "➕ Gestión de producto no disponible.", markup=key
+def manage_products(chat_id, store_id):
+    """Listado simple de productos disponibles en la tienda."""
+    goods = dop.get_goods(store_id)
+    lines = ["📦 *Productos disponibles:*"]
+    if goods:
+        lines.extend(f"- {g}" for g in goods)
+    else:
+        lines.append("- Ninguno")
+    message = "\n".join(lines)
+    key = nav_system.create_universal_navigation(chat_id, "manage_products")
+    send_long_message(bot, chat_id, message, markup=key, parse_mode="Markdown")
+
+
+def config_payments(chat_id, store_id):
+    """Mostrar estado de configuración de los métodos de pago."""
+    paypal = "Configurado ✅" if dop.get_paypaldata(store_id) else "No configurado ❌"
+    binance = "Configurado ✅" if dop.get_binancedata(store_id) else "No configurado ❌"
+    message = (
+        "💰 *Configuración de Pagos*\n\n"
+        f"PayPal: {paypal}\n"
+        f"Binance Pay: {binance}"
     )
+    key = nav_system.create_universal_navigation(chat_id, "config_payments")
+    send_long_message(bot, chat_id, message, markup=key, parse_mode="Markdown")
 
 
-def admin_pagos(chat_id, store_id):
-    key = nav_system.create_universal_navigation(chat_id, "admin_pagos")
-    send_long_message(bot, chat_id, "💰 Gestión de pagos no disponible.", markup=key)
-
-
-def admin_stats(chat_id, store_id):
-    key = nav_system.create_universal_navigation(chat_id, "admin_stats")
-    send_long_message(bot, chat_id, "📊 Estadísticas no disponibles.", markup=key)
+def view_stats(chat_id, store_id):
+    """Mostrar estadísticas de ventas para la tienda."""
+    try:
+        stats = dop.get_daily_sales(store_id)
+    except Exception:
+        stats = f"Stats: {dop.get_profit(store_id)} USD total"
+    key = nav_system.create_universal_navigation(chat_id, "view_stats")
+    send_long_message(bot, chat_id, stats, markup=key, parse_mode="Markdown")
 
 
 def admin_difusion(chat_id, store_id):
@@ -618,9 +637,9 @@ def admin_otros(chat_id, store_id):
 
 nav_system.register("ad_respuestas", admin_respuestas)
 nav_system.register("ad_surtido", admin_surtido)
-nav_system.register("ad_producto", admin_producto)
-nav_system.register("ad_pagos", admin_pagos)
-nav_system.register("ad_stats", admin_stats)
+nav_system.register("ad_producto", manage_products)
+nav_system.register("ad_pagos", config_payments)
+nav_system.register("ad_stats", view_stats)
 nav_system.register("ad_difusion", admin_difusion)
 nav_system.register("ad_resumen", admin_resumen)
 nav_system.register("ad_marketing", admin_marketing)
