@@ -44,11 +44,9 @@ def set_state(chat_id, state, prev="main"):
 def clear_state(chat_id):
     """Remove stored state"""
     with shelve.open(files.sost_bd) as bd:
-        if str(chat_id) in bd:
-            del bd[str(chat_id)]
-        key = f"{chat_id}_prev"
-        if key in bd:
-            del bd[key]
+        bd.pop(str(chat_id), None)
+        bd.pop(f"{chat_id}_prev", None)
+        bd.pop(f"{chat_id}_new_product", None)
 
 
 def cancel_and_reset(chat_id):
@@ -579,8 +577,9 @@ def admin_surtido(chat_id, store_id):
 def show_product_list(store_id, chat_id, page: int = 1):
     """Show products with stock and inline controls."""
     goods = dop.get_goods(store_id)
+    quick_actions = [("➕ Nuevo", "add_prod_step_name")]
     if not goods:
-        key = nav_system.create_universal_navigation(chat_id, "product_list", store_id)
+        key = nav_system.create_universal_navigation(chat_id, "product_list", quick_actions)
         send_long_message(bot, chat_id, "No hay productos disponibles.", markup=key)
         return
 
@@ -625,7 +624,7 @@ def show_product_list(store_id, chat_id, page: int = 1):
     if pagination:
         rows.append(pagination)
 
-    key = nav_system.create_universal_navigation(chat_id, "product_list", store_id)
+    key = nav_system.create_universal_navigation(chat_id, "product_list", quick_actions)
     key.keyboard = rows + key.keyboard
     send_long_message(bot, chat_id, "\n".join(lines), markup=key)
 
@@ -644,6 +643,87 @@ def toggle_product(chat_id, store_id, name):
         _disabled_products.add(key)
     page = _product_pages.get(chat_id, 1)
     show_product_list(store_id, chat_id, page)
+
+
+def add_prod_step_name(chat_id, store_id):
+    """Solicitar nombre del nuevo producto."""
+    set_state(chat_id, 310, prev="product")
+    with shelve.open(files.sost_bd) as bd:
+        bd[f"{chat_id}_new_product"] = {"shop_id": store_id}
+    key = nav_system.create_universal_navigation(chat_id, "add_prod_name")
+    send_long_message(bot, chat_id, "📝 Ingresa el nombre del producto:", markup=key)
+
+
+def add_prod_step_price(chat_id, store_id):
+    """Solicitar precio del producto."""
+    set_state(chat_id, 311, prev="product")
+    key = nav_system.create_universal_navigation(chat_id, "add_prod_price")
+    send_long_message(bot, chat_id, "💰 Ingresa el precio del producto:", markup=key)
+
+
+def add_prod_step_media(chat_id, store_id):
+    """Solicitar multimedia opcional para el producto."""
+    set_state(chat_id, 312, prev="product")
+    key = nav_system.create_universal_navigation(chat_id, "add_prod_media")
+    send_long_message(
+        bot,
+        chat_id,
+        "📎 Envía una imagen/video del producto o escribe 'omitir':",
+        markup=key,
+    )
+
+
+def add_prod_step_stock(chat_id, store_id):
+    """Solicitar stock inicial y finalizar."""
+    set_state(chat_id, 313, prev="product")
+    key = nav_system.create_universal_navigation(chat_id, "add_prod_stock")
+    send_long_message(bot, chat_id, "📦 Ingresa el stock inicial:", markup=key)
+
+
+def handle_multimedia(message):
+    """Procesar multimedia en el flujo de creación de producto."""
+    chat_id = message.chat.id
+    with shelve.open(files.sost_bd) as bd:
+        state = bd.get(str(chat_id))
+        if state != 312:
+            return
+        data = bd.get(f"{chat_id}_new_product", {})
+
+    file_id = None
+    media_type = None
+    caption = getattr(message, "caption", None)
+    if getattr(message, "photo", None):
+        file_id = message.photo[-1].file_id
+        media_type = "photo"
+    elif getattr(message, "video", None):
+        file_id = message.video.file_id
+        media_type = "video"
+    elif getattr(message, "document", None):
+        file_id = message.document.file_id
+        media_type = "document"
+    elif getattr(message, "audio", None):
+        file_id = message.audio.file_id
+        media_type = "audio"
+    elif getattr(message, "animation", None):
+        file_id = message.animation.file_id
+        media_type = "animation"
+
+    if not file_id:
+        send_long_message(bot, chat_id, "❌ Tipo de archivo no soportado.")
+        return
+
+    with shelve.open(files.sost_bd) as bd:
+        data = bd.get(f"{chat_id}_new_product", {})
+        data.update(
+            {
+                "media_file_id": file_id,
+                "media_type": media_type,
+                "media_caption": caption,
+            }
+        )
+        bd[f"{chat_id}_new_product"] = data
+
+    add_prod_step_stock(chat_id, data.get("shop_id", dop.get_shop_id(chat_id)))
 
 
 def manage_products(chat_id, store_id):
@@ -712,6 +792,10 @@ nav_system.register("ad_marketing", admin_marketing)
 nav_system.register("ad_categorias", admin_categorias)
 nav_system.register("ad_descuentos", admin_descuentos)
 nav_system.register("ad_otros", admin_otros)
+nav_system.register("add_prod_step_name", add_prod_step_name)
+nav_system.register("add_prod_step_price", add_prod_step_price)
+nav_system.register("add_prod_step_media", add_prod_step_media)
+nav_system.register("add_prod_step_stock", add_prod_step_stock)
 
 
 # Wrapper used in tests to dispatch callbacks without the legacy system
@@ -838,6 +922,65 @@ def text_analytics(message_text, chat_id):
                 f"✅ Tienda '{name}' creada (ID: {shop_id_new}).",
             )
             show_superadmin_dashboard(chat_id, chat_id)
+        elif sost_num == 310:
+            # Nombre del nuevo producto
+            name = message_text.strip()
+            with shelve.open(files.sost_bd) as bd:
+                data = bd.get(f"{chat_id}_new_product", {})
+                data["name"] = name
+                bd[f"{chat_id}_new_product"] = data
+            add_prod_step_price(chat_id, shop_id)
+        elif sost_num == 311:
+            # Precio del producto
+            try:
+                price = int(message_text.strip())
+            except ValueError:
+                send_long_message(bot, chat_id, "❌ Precio inválido. Intenta nuevamente:")
+                return
+            with shelve.open(files.sost_bd) as bd:
+                data = bd.get(f"{chat_id}_new_product", {})
+                data["price"] = price
+                bd[f"{chat_id}_new_product"] = data
+            add_prod_step_media(chat_id, shop_id)
+        elif sost_num == 312:
+            # Texto en lugar de multimedia
+            if normalized == "omitir":
+                add_prod_step_stock(chat_id, shop_id)
+            else:
+                send_long_message(bot, chat_id, "❌ Envía un archivo o escribe 'omitir'.")
+        elif sost_num == 313:
+            # Stock inicial y creación del producto
+            try:
+                stock = int(message_text.strip())
+            except ValueError:
+                send_long_message(bot, chat_id, "❌ Stock inválido. Intenta nuevamente:")
+                return
+            with shelve.open(files.sost_bd) as bd:
+                data = bd.pop(f"{chat_id}_new_product", {})
+            clear_state(chat_id)
+            name = data.get("name", "Producto")
+            price = data.get("price", 0)
+            dop.create_product(
+                name,
+                "",
+                "manual",
+                1,
+                price,
+                "x",
+                media_file_id=data.get("media_file_id"),
+                media_type=data.get("media_type"),
+                media_caption=data.get("media_caption"),
+                manual_delivery=1,
+                manual_stock=stock,
+                shop_id=data.get("shop_id", shop_id),
+            )
+            key = nav_system.create_universal_navigation(chat_id, "product_created")
+            send_long_message(
+                bot,
+                chat_id,
+                f"✅ Producto '{name}' creado.",
+                markup=key,
+            )
         else:
             clear_state(chat_id)
 
