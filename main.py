@@ -496,6 +496,21 @@ def inline(callback):
                 callback.data, callback.message.chat.id, callback.from_user.id
             )
             return
+        elif callback.data.startswith('product_edit_'):
+            name = callback.data.replace('product_edit_', '')
+            store_id = dop.get_user_shop(callback.message.chat.id)
+            adminka.edit_product(callback.message.chat.id, store_id, name)
+            return
+        elif callback.data.startswith('product_toggle_'):
+            name = callback.data.replace('product_toggle_', '')
+            store_id = dop.get_user_shop(callback.message.chat.id)
+            adminka.toggle_product(callback.message.chat.id, store_id, name)
+            return
+        elif callback.data.startswith('product_page_'):
+            page = int(callback.data.replace('product_page_', ''))
+            store_id = dop.get_user_shop(callback.message.chat.id)
+            adminka.show_product_list(store_id, callback.message.chat.id, page)
+            return
         elif callback.data.startswith('view_store_'):
             shop_id = int(callback.data.replace('view_store_', ''))
             dop.set_user_shop(callback.message.chat.id, shop_id)
