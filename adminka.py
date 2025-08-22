@@ -730,17 +730,143 @@ def manage_products(chat_id, store_id):
     show_product_list(store_id, chat_id)
 
 
-def config_payments(chat_id, store_id):
-    """Mostrar estado de configuración de los métodos de pago."""
-    paypal = "Configurado ✅" if dop.get_paypaldata(store_id) else "No configurado ❌"
-    binance = "Configurado ✅" if dop.get_binancedata(store_id) else "No configurado ❌"
-    message = (
-        "💰 *Configuración de Pagos*\n\n"
-        f"PayPal: {paypal}\n"
-        f"Binance Pay: {binance}"
+"""
+PayPal/Binance configuration
+---------------------------
+
+Legacy payment configuration logic is migrated here so the admin interface
+can manage credentials using the new navigation system.  Each provider has
+callbacks to enable/disable and to request credentials from the user.
+"""
+
+
+def configure_payments(store_id, chat_id):
+    """Show current payment configuration and options."""
+
+    paypal_on = dop.check_vklpayments("paypal") == "✅"
+    paypal_cfg = dop.get_paypaldata(store_id) is not None
+    binance_on = dop.check_vklpayments("binance") == "✅"
+    binance_cfg = dop.get_binancedata(store_id) is not None
+
+    lines = [
+        f"PayPal: {'Activo ✅' if paypal_on and paypal_cfg else 'Inactivo ❌'}",
+        f"Binance Pay: {'Activo ✅' if binance_on and binance_cfg else 'Inactivo ❌'}",
+    ]
+    box = render_box(lines, title="Pagos")
+
+    quick_actions = []
+    if paypal_on:
+        quick_actions.append(("✏️ PayPal", "paypal_set_key"))
+        quick_actions.append(("🚫 PayPal", "paypal_disable"))
+    else:
+        quick_actions.append(("✅ PayPal", "paypal_enable"))
+    if binance_on:
+        quick_actions.append(("✏️ Binance", "binance_set_key"))
+        quick_actions.append(("🚫 Binance", "binance_disable"))
+    else:
+        quick_actions.append(("✅ Binance", "binance_enable"))
+
+    key = nav_system.create_universal_navigation(
+        chat_id, "configure_payments", quick_actions
     )
-    key = nav_system.create_universal_navigation(chat_id, "config_payments")
-    send_long_message(bot, chat_id, message, markup=key, parse_mode="Markdown")
+    send_long_message(bot, chat_id, box, markup=key, parse_mode="Markdown")
+
+
+def config_payments(chat_id, store_id):
+    """Backward compatible wrapper for older callbacks."""
+    configure_payments(store_id, chat_id)
+
+
+def paypal_enable(chat_id, store_id):
+    """Enable PayPal and prompt for credentials."""
+    with shelve.open(files.payments_bd) as bd:
+        bd["paypal"] = "✅"
+    paypal_set_key(chat_id, store_id)
+
+
+def paypal_disable(chat_id, store_id):
+    """Disable PayPal payments."""
+    with shelve.open(files.payments_bd) as bd:
+        bd["paypal"] = "❌"
+    configure_payments(store_id, chat_id)
+
+
+def paypal_set_key(chat_id, store_id):
+    """Ask admin for PayPal credentials."""
+    set_state(chat_id, 400, prev="payments")
+    key = nav_system.create_universal_navigation(chat_id, "paypal_form")
+    send_long_message(
+        bot,
+        chat_id,
+        "Ingresa `CLIENT_ID CLIENT_SECRET [sandbox]`:",
+        markup=key,
+        parse_mode="Markdown",
+    )
+
+
+def binance_enable(chat_id, store_id):
+    """Enable Binance Pay and request credentials."""
+    with shelve.open(files.payments_bd) as bd:
+        bd["binance"] = "✅"
+    binance_set_key(chat_id, store_id)
+
+
+def binance_disable(chat_id, store_id):
+    """Disable Binance Pay."""
+    with shelve.open(files.payments_bd) as bd:
+        bd["binance"] = "❌"
+    configure_payments(store_id, chat_id)
+
+
+def binance_set_key(chat_id, store_id):
+    """Ask admin for Binance credentials."""
+    set_state(chat_id, 401, prev="payments")
+    key = nav_system.create_universal_navigation(chat_id, "binance_form")
+    send_long_message(
+        bot,
+        chat_id,
+        "Ingresa `API_KEY API_SECRET MERCHANT_ID`:",
+        markup=key,
+        parse_mode="Markdown",
+    )
+
+
+def handle_payment_credentials(chat_id, message_text):
+    """Store credentials sent by the admin for PayPal or Binance."""
+    with shelve.open(files.sost_bd) as bd:
+        state = bd.get(str(chat_id))
+
+    if state == 400:
+        parts = (message_text or "").strip().split()
+        if len(parts) < 2:
+            send_long_message(
+                bot,
+                chat_id,
+                "Formato inválido. Usa `CLIENT_ID CLIENT_SECRET [sandbox]`.",
+                parse_mode="Markdown",
+            )
+            return
+        client_id, client_secret = parts[:2]
+        sandbox = parts[2] if len(parts) >= 3 else 1
+        dop.save_paypaldata(client_id, client_secret, sandbox, dop.get_shop_id(chat_id))
+        clear_state(chat_id)
+        configure_payments(dop.get_shop_id(chat_id), chat_id)
+    elif state == 401:
+        parts = (message_text or "").strip().split()
+        if len(parts) != 3:
+            send_long_message(
+                bot,
+                chat_id,
+                "Formato inválido. Usa `API_KEY API_SECRET MERCHANT_ID`.",
+                parse_mode="Markdown",
+            )
+            return
+        api_key, api_secret, merchant_id = parts
+        dop.save_binancedata(api_key, api_secret, merchant_id, dop.get_shop_id(chat_id))
+        clear_state(chat_id)
+        configure_payments(dop.get_shop_id(chat_id), chat_id)
+    else:
+        return
 
 
 def view_stats(chat_id, store_id):
@@ -784,7 +910,9 @@ def admin_otros(chat_id, store_id):
 nav_system.register("ad_respuestas", admin_respuestas)
 nav_system.register("ad_surtido", admin_surtido)
 nav_system.register("ad_producto", manage_products)
-nav_system.register("ad_pagos", config_payments)
+nav_system.register(
+    "ad_pagos", lambda chat_id, store_id: configure_payments(store_id, chat_id)
+)
 nav_system.register("ad_stats", view_stats)
 nav_system.register("ad_difusion", admin_difusion)
 nav_system.register("ad_resumen", admin_resumen)
@@ -796,6 +924,12 @@ nav_system.register("add_prod_step_name", add_prod_step_name)
 nav_system.register("add_prod_step_price", add_prod_step_price)
 nav_system.register("add_prod_step_media", add_prod_step_media)
 nav_system.register("add_prod_step_stock", add_prod_step_stock)
+nav_system.register("paypal_enable", paypal_enable)
+nav_system.register("paypal_disable", paypal_disable)
+nav_system.register("paypal_set_key", paypal_set_key)
+nav_system.register("binance_enable", binance_enable)
+nav_system.register("binance_disable", binance_disable)
+nav_system.register("binance_set_key", binance_set_key)
 
 
 # Wrapper used in tests to dispatch callbacks without the legacy system
@@ -883,7 +1017,9 @@ def text_analytics(message_text, chat_id):
         with shelve.open(files.sost_bd) as bd:
             sost_num = bd.get(str(chat_id))
 
-        if sost_num == 190:
+        if sost_num in (400, 401):
+            handle_payment_credentials(chat_id, message_text)
+        elif sost_num == 190:
             goods = dop.get_goods(shop_id)
             if message_text not in goods:
                 send_long_message(bot, chat_id, "Selección inválida. Intente nuevamente.")
