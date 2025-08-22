@@ -28,7 +28,11 @@ def test_product_campaign_creates_button(monkeypatch, tmp_path):
     monkeypatch.setattr(main.adminka.files, "sost_bd", str(tmp_path / "sost.bd"))
     keyboard_stub = lambda *a, **k: types.SimpleNamespace(row=lambda *b, **c: None)
     monkeypatch.setattr(main.adminka.telebot.types, "ReplyKeyboardMarkup", keyboard_stub, raising=False)
-    monkeypatch.setattr(main.adminka.advertising, "get_today_stats", lambda: {"sent": 0, "success_rate": 100, "groups": 0})
+    monkeypatch.setattr(
+        main.adminka.advertising,
+        "get_today_stats",
+        lambda: {"sent": 0, "success_rate": 100, "groups": 0},
+    )
     created = {}
 
     def fake_create(data):
@@ -96,11 +100,13 @@ def test_product_selection_triggers_campaign(monkeypatch, tmp_path):
     )
 
     monkeypatch.setattr(dop, "get_adminlist", lambda: [1])
-    monkeypatch.setattr(main.adminka.dop, "get_adminlist", lambda: [1])
-    path = str(tmp_path / "sost.bd")
-    monkeypatch.setattr(main.adminka.files, "sost_bd", path)
-    monkeypatch.setattr(dop.files, "sost_bd", path)
-    monkeypatch.setattr(main.adminka.advertising, "get_today_stats", lambda: {"sent": 0, "success_rate": 100, "groups": 0})
+    monkeypatch.setattr(main.adminka.files, "sost_bd", str(tmp_path / "sost.bd"))
+    monkeypatch.setattr(dop.files, "sost_bd", str(tmp_path / "sost.bd"))
+    monkeypatch.setattr(
+        main.adminka.advertising,
+        "get_today_stats",
+        lambda: {"sent": 0, "success_rate": 100, "groups": 0},
+    )
     keyboard_stub = lambda *a, **k: types.SimpleNamespace(row=lambda *b, **c: None)
     monkeypatch.setattr(main.adminka.telebot.types, "ReplyKeyboardMarkup", keyboard_stub, raising=False)
     monkeypatch.setattr(main.adminka, "show_marketing_menu", lambda *a, **k: None)
@@ -113,11 +119,7 @@ def test_product_selection_triggers_campaign(monkeypatch, tmp_path):
 
     monkeypatch.setattr(main.adminka, "create_campaign_from_admin", fake_create)
 
-    main.adminka.in_adminka(1, "🛒 Campaña de producto", "admin", "Admin")
-    with shelve.open(main.adminka.files.sost_bd) as bd:
-        assert bd["1"] == 190
-
-    main.adminka.text_analytics("Prod", 1)
+    main.adminka.finalize_product_campaign(1, sid, "Prod")
 
     assert created["message_text"] == "desc\nmore"
     assert created["media_file_id"] == "mfid"

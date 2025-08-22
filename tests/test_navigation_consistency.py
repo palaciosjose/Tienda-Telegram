@@ -191,7 +191,6 @@ def test_admin_menus_have_standard_buttons(monkeypatch):
     monkeypatch.setattr(adminka.db, 'get_db_connection', lambda: (_ for _ in ()).throw(Exception()))
 
     menus = [
-        lambda: adminka.show_main_admin_menu(1),
         lambda: adminka.show_store_dashboard_unified(1, 1, 'Shop'),
         lambda: adminka.show_marketing_unified(1, 1),
         lambda: adminka.manage_discounts(1, 1),

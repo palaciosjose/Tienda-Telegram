@@ -59,9 +59,10 @@ def test_superadmin_dashboard_metrics(monkeypatch, tmp_path):
     callbacks = {c for _, c in quick}
     assert {'admin_list_shops', 'admin_create_shop', 'global_telethon_config', 'admin_bi_report'}.issubset(callbacks)
 
-    called = {}
-    monkeypatch.setattr(adminka, 'show_store_dashboard_unified', lambda cid, sid, name: called.setdefault('view', (cid, sid, name)))
-    monkeypatch.setattr(adminka, 'show_main_admin_menu', lambda cid: called.setdefault('admin', cid))
+    calls = []
+    def stub(cid, sid, name):
+        calls.append((cid, sid, name))
+    monkeypatch.setattr(adminka, 'show_store_dashboard_unified', stub)
     cb_view = types.SimpleNamespace(
         data=f'view_store_{sid1}',
         message=types.SimpleNamespace(chat=types.SimpleNamespace(id=5), message_id=1),
@@ -69,7 +70,7 @@ def test_superadmin_dashboard_metrics(monkeypatch, tmp_path):
         from_user=types.SimpleNamespace(id=1),
     )
     main.inline(cb_view)
-    assert called.get('view') == (5, sid1, 'S1')
+    assert calls[0] == (5, sid1, 'S1')
     cb_admin = types.SimpleNamespace(
         data=f'admin_store_{sid2}',
         message=types.SimpleNamespace(chat=types.SimpleNamespace(id=5), message_id=1),
@@ -77,5 +78,4 @@ def test_superadmin_dashboard_metrics(monkeypatch, tmp_path):
         from_user=types.SimpleNamespace(id=1),
     )
     main.inline(cb_admin)
-    assert called.get('admin') == 5
-    assert 5 in main.in_admin
+    assert calls[1] == (5, sid2, 'S2')

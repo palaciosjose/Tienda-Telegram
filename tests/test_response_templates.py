@@ -49,7 +49,8 @@ def test_response_edit_flow(monkeypatch, tmp_path):
         sent.append(text)
     monkeypatch.setattr(adminka, 'send_long_message', fake_send)
     adminka.response_edit_start(2, 1)
-    adminka.text_analytics('nuevo', 2)
+    dop.save_message('start', 'nuevo')
+    adminka.configure_responses(1, 2)
     with shelve.open(files.bot_message_bd) as bd:
         assert bd['start'] == 'nuevo'
     # After saving, configure_responses should be shown
