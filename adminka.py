@@ -202,7 +202,7 @@ def show_store_dashboard_unified(chat_id, store_id, store_name):
     )
 
 
-def show_marketing_unified(chat_id, store_id):
+def show_marketing_unified(store_id, chat_id):
     """Mostrar un panel compacto con campañas, programación y Telethon."""
     try:
         campaigns = advertising.get_all_campaigns()
@@ -248,8 +248,8 @@ def show_marketing_unified(chat_id, store_id):
 
     quick_actions = [
         ("➕ Nueva", "quick_new_campaign"),
+        ("📋 Activas", "quick_active_campaigns"),
         ("🤖 Telethon", "quick_telethon"),
-        ("📊 Stats", "quick_stats"),
     ]
     key = nav_system.create_universal_navigation(
         chat_id, f"marketing_{store_id}", quick_actions
@@ -275,14 +275,24 @@ def quick_telethon(chat_id, store_id):
     send_long_message(bot, chat_id, f"🤖 Telethon: {msg}")
 
 
-def quick_stats(chat_id, store_id):
-    text = list_campaigns_for_admin()
-    send_long_message(bot, chat_id, text, parse_mode="Markdown")
+def quick_active_campaigns(chat_id, store_id):
+    try:
+        campaigns = advertising.get_all_campaigns()
+    except Exception:
+        campaigns = []
+    active = [c for c in campaigns if c.get("status") == "active"]
+    if not active:
+        send_long_message(bot, chat_id, "ℹ️ No hay campañas activas.")
+        return
+    lines = ["📋 *Campañas activas:*"]
+    for c in active:
+        lines.append(f"- {c.get('id')}. {c.get('name', '')}")
+    send_long_message(bot, chat_id, "\n".join(lines), parse_mode="Markdown")
 
 
 nav_system.register("quick_new_campaign", quick_new_campaign)
+nav_system.register("quick_active_campaigns", quick_active_campaigns)
 nav_system.register("quick_telethon", quick_telethon)
-nav_system.register("quick_stats", quick_stats)
 
 
 def show_discount_menu(chat_id):
@@ -336,7 +346,7 @@ def show_product_menu(chat_id):
 
 def show_marketing_menu(chat_id):
     shop_id = dop.get_shop_id(chat_id)
-    show_marketing_unified(chat_id, shop_id)
+    show_marketing_unified(shop_id, chat_id)
 
 
 def show_superadmin_dashboard(chat_id, user_id):
@@ -970,6 +980,11 @@ def finalize_product_campaign(chat_id, shop_id, product):
     }
     ok, msg = create_campaign_from_admin(data)
     bot.send_message(chat_id, ("✅ " if ok else "❌ ") + msg)
+    try:
+        if telethon_manager.get_stats(shop_id).get("active"):
+            telethon_manager.distribute_campaign(shop_id)
+    except Exception:
+        pass
     with shelve.open(files.sost_bd) as bd:
         if str(chat_id) in bd:
             del bd[str(chat_id)]

@@ -9,6 +9,7 @@ import db
 from datetime import datetime
 import dop
 import config
+import telethon_manager
 
 # Instancia única usada por los helpers de este módulo
 _manager = AdvertisingManager(files.main_db, shop_id=1)
@@ -38,6 +39,12 @@ def create_campaign_from_admin(data):
                 return False, 'Límite de campañas alcanzado'
 
         campaign_id = _manager.create_campaign(data)
+        try:
+            stats = telethon_manager.get_stats(shop_id)
+            if stats.get("active"):
+                telethon_manager.distribute_campaign(shop_id, campaign_id)
+        except Exception:
+            pass
         return True, f"Campaña creada con ID {campaign_id}"
     except Exception as exc:
         return False, f"Error al crear campaña: {exc}"
