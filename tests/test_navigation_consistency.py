@@ -194,7 +194,8 @@ def test_admin_menus_have_standard_buttons(monkeypatch):
         lambda: adminka.show_main_admin_menu(1),
         lambda: adminka.show_store_dashboard_unified(1, 1, 'Shop'),
         lambda: adminka.show_marketing_unified(1, 1),
-        lambda: adminka.show_discount_menu(1),
+        lambda: adminka.manage_discounts(1, 1),
+        lambda: adminka.show_other_settings(1, 1),
     ]
 
     for menu in menus:
