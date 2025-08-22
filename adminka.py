@@ -18,6 +18,7 @@ from bot_instance import bot
 from advertising_system.scheduler import CampaignScheduler
 from navigation import nav_system
 from utils.message_chunker import send_long_message
+from broadcast import start_broadcast
 
 import logging
 import math
@@ -880,8 +881,7 @@ def view_stats(chat_id, store_id):
 
 
 def admin_difusion(chat_id, store_id):
-    key = nav_system.create_universal_navigation(chat_id, "admin_difusion")
-    send_long_message(bot, chat_id, "📣 Difusión no disponible.", markup=key)
+    start_broadcast(store_id, chat_id)
 
 
 def admin_resumen(chat_id, store_id):
