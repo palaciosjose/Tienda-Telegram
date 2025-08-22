@@ -908,13 +908,95 @@ def admin_categorias(chat_id, store_id):
     send_long_message(bot, chat_id, "🏷️ Categorías no disponible.", markup=key)
 
 
+def manage_discounts(store_id, chat_id):
+    """Mostrar panel de descuentos con acciones CRUD básicas."""
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        cur.execute(
+            "SELECT id, percent, start_time, end_time FROM discounts WHERE shop_id=?",
+            (store_id,),
+        )
+        discounts = cur.fetchall()
+    except Exception:
+        discounts = []
+
+    lines = ["📉 *Descuentos actuales*"]
+    if not discounts:
+        lines.append("Sin descuentos registrados.")
+    else:
+        for did, percent, start, end in discounts:
+            end_txt = end or "∞"
+            lines.append(f"#{did}: {percent}% ({start} - {end_txt})")
+
+    quick_actions = [
+        ("➕ Añadir", "discount_add"),
+        ("✏️ Editar", "discount_edit"),
+        ("🗑️ Eliminar", "discount_delete"),
+    ]
+    key = nav_system.create_universal_navigation(chat_id, "manage_discounts", quick_actions)
+    send_long_message(
+        bot, chat_id, "\n".join(lines), markup=key, parse_mode="Markdown"
+    )
+
+
+def show_other_settings(store_id, chat_id):
+    """Panel con otras configuraciones de la tienda."""
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        cur.execute("SELECT name FROM shops WHERE id=?", (store_id,))
+        row = cur.fetchone()
+        store_name = row[0] if row else str(store_id)
+        cur.execute(
+            "SELECT user_id FROM shop_users WHERE shop_id=? AND is_admin=1",
+            (store_id,),
+        )
+        admins = [str(r[0]) for r in cur.fetchall()]
+    except Exception:
+        store_name = str(store_id)
+        admins = []
+
+    admin_txt = ", ".join(admins) if admins else "Ninguno"
+    quick_actions = [("ℹ️ Info", "store_info"), ("👤 Admins", "store_admins")]
+    key = nav_system.create_universal_navigation(chat_id, "other_settings", quick_actions)
+    message = (
+        f"⚙️ *Otros ajustes*\n\nTienda: {store_name}\nAdministradores: {admin_txt}"
+    )
+    send_long_message(bot, chat_id, message, markup=key, parse_mode="Markdown")
+
+
 def admin_descuentos(chat_id, store_id):
-    show_discount_menu(chat_id)
+    manage_discounts(store_id, chat_id)
 
 
 def admin_otros(chat_id, store_id):
-    key = nav_system.create_universal_navigation(chat_id, "admin_otros")
-    send_long_message(bot, chat_id, "⚙️ Opciones adicionales no disponibles.", markup=key)
+    show_other_settings(store_id, chat_id)
+
+
+def discount_add(chat_id, store_id):
+    key = nav_system.create_universal_navigation(chat_id, "discount_add")
+    send_long_message(bot, chat_id, "Añadir descuento no disponible.", markup=key)
+
+
+def discount_edit(chat_id, store_id):
+    key = nav_system.create_universal_navigation(chat_id, "discount_edit")
+    send_long_message(bot, chat_id, "Editar descuento no disponible.", markup=key)
+
+
+def discount_delete(chat_id, store_id):
+    key = nav_system.create_universal_navigation(chat_id, "discount_delete")
+    send_long_message(bot, chat_id, "Eliminar descuento no disponible.", markup=key)
+
+
+def store_info(chat_id, store_id):
+    key = nav_system.create_universal_navigation(chat_id, "store_info")
+    send_long_message(bot, chat_id, "Información de la tienda no disponible.", markup=key)
+
+
+def store_admins(chat_id, store_id):
+    key = nav_system.create_universal_navigation(chat_id, "store_admins")
+    send_long_message(bot, chat_id, "Gestión de administradores no disponible.", markup=key)
 
 
 nav_system.register("ad_respuestas", admin_respuestas)
@@ -930,6 +1012,11 @@ nav_system.register("ad_marketing", admin_marketing)
 nav_system.register("ad_categorias", admin_categorias)
 nav_system.register("ad_descuentos", admin_descuentos)
 nav_system.register("ad_otros", admin_otros)
+nav_system.register("discount_add", discount_add)
+nav_system.register("discount_edit", discount_edit)
+nav_system.register("discount_delete", discount_delete)
+nav_system.register("store_info", store_info)
+nav_system.register("store_admins", store_admins)
 nav_system.register("add_prod_step_name", add_prod_step_name)
 nav_system.register("add_prod_step_price", add_prod_step_price)
 nav_system.register("add_prod_step_media", add_prod_step_media)
