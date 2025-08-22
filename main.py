@@ -251,8 +251,6 @@ if not os.path.exists('data/db/main_data.db'):
     exit(1)
 
 
-in_admin = []
-
 @bot.message_handler(content_types=["text"])
 def message_send(message):
     """Route incoming text messages to the appropriate handlers."""
@@ -298,8 +296,6 @@ def message_send(message):
 
     elif '/adm' == message.text:
         if is_admin:
-            if message.chat.id not in in_admin:
-                in_admin.append(message.chat.id)
             if message.chat.id == config.admin_id:
                 show_main_interface(message.chat.id, user_id)
             else:
@@ -331,111 +327,131 @@ def message_send(message):
             bd[str(message.chat.id)] = 23
 
     elif dop.get_sost(message.chat.id) is True:
-        if message.chat.id in in_admin:
-            adminka.text_analytics(message.text, message.chat.id)
-        else:
-            with shelve.open(files.sost_bd) as bd:
-                sost_num = bd[str(message.chat.id)]
-            if sost_num == 22:
-                key = telebot.types.InlineKeyboardMarkup()
-                shop_id = dop.get_user_shop(message.chat.id)
+        with shelve.open(files.sost_bd) as bd:
+            sost_num = bd[str(message.chat.id)]
+        if sost_num == 22:
+            key = telebot.types.InlineKeyboardMarkup()
+            shop_id = dop.get_user_shop(message.chat.id)
+            try:
+                amount = int(message.text)
                 try:
-                    amount = int(message.text)
-                    try:
-                        with open('data/Temp/' + str(message.chat.id) + 'good_name.txt', encoding='utf-8') as f:
-                            name_good = f.read()
-                    except FileNotFoundError:
-                        session_expired(message.chat.id, message.chat.username, message.from_user.first_name)
-                        return
-                    if dop.get_minimum(name_good, shop_id) <= amount <= dop.amount_of_goods(name_good, shop_id):
-                        sum_price = dop.order_sum(name_good, amount, shop_id)
-                        # Optimización: verificar pagos una sola vez
-                        paypal_active = dop.check_vklpayments('paypal') == '✅'
-                        binance_active = dop.check_vklpayments('binance') == '✅'
-
-                        if not (paypal_active or binance_active):
-                            key.add(telebot.types.InlineKeyboardButton(text='🔙 Inicio', callback_data='Volver al inicio'))
-                            bot.send_message(message.chat.id,
-                                             '💳 Los pagos están temporalmente desactivados.',
-                                             parse_mode='Markdown', reply_markup=key)
-                            with shelve.open(files.sost_bd) as bd:
-                                if str(message.chat.id) in bd:
-                                    del bd[str(message.chat.id)]
-                            send_main_menu(message.chat.id, message.chat.username, message.from_user.first_name)
-                            return
-
-                        if paypal_active and binance_active:
-                            b1 = telebot.types.InlineKeyboardButton(text='💳 PayPal', callback_data='PayPal')
-                            b2 = telebot.types.InlineKeyboardButton(text='🟡 Binance Pay', callback_data='Binance')
-                            key.add(b1, b2)
-                        elif paypal_active:
-                            key.add(telebot.types.InlineKeyboardButton(text='💳 PayPal', callback_data='PayPal'))
-                        elif binance_active:
-                            key.add(telebot.types.InlineKeyboardButton(text='🟡 Binance Pay', callback_data='Binance'))
-                        key.add(telebot.types.InlineKeyboardButton(text='🔙 Inicio', callback_data='Volver al inicio'))
-
-                        bot.send_message(message.chat.id,
-                                         f'✅ **Has elegido:** {name_good}\n🔢 **Cantidad:** {str(amount)}\n💰 **Total del pedido:** ${str(sum_price)} USD\n\n💳 **Elige tu método de pago:**',
-                                         parse_mode='Markdown', reply_markup=key)
-
-                        with open('data/Temp/' + str(message.chat.id) + '.txt', 'w', encoding='utf-8') as f:
-                            f.write(str(amount) + '\n')
-                            f.write(str(sum_price) + '\n')
-                    elif dop.get_minimum(name_good, shop_id) > amount:
-                        key.add(telebot.types.InlineKeyboardButton(text='🔙 Inicio', callback_data='Volver al inicio'))
-                        bot.send_message(message.chat.id,
-                                         f'⚠️ **¡Elige una cantidad mayor!**\n\n📊 **Cantidad mínima:** {str(dop.get_minimum(name_good, shop_id))} unidades',
-                                         parse_mode='Markdown', reply_markup=key)
-                    elif amount > dop.amount_of_goods(name_good, shop_id):
-                        key.add(telebot.types.InlineKeyboardButton(text='🔙 Inicio', callback_data='Volver al inicio'))
-                        bot.send_message(message.chat.id,
-                                         f'⚠️ **¡Elige una cantidad menor!**\n\n📦 **Stock disponible:** {str(dop.amount_of_goods(name_good, shop_id))} unidades',
-                                         parse_mode='Markdown', reply_markup=key)
-                except Exception as e:
-                    key.add(telebot.types.InlineKeyboardButton(text='🔙 Inicio', callback_data='Volver al inicio'))
-                    bot.send_message(message.chat.id,
-                                     '❌ **¡La cantidad debe ser un número válido!**\n\n🔢 Envía solo números (ej: 5)',
-                                     parse_mode='Markdown', reply_markup=key)
-            elif sost_num == 23:
-                text = (message.text or '').strip()
-                if not text:
+                    with open('data/Temp/' + str(message.chat.id) + 'good_name.txt', encoding='utf-8') as f:
+                        name_good = f.read()
+                except FileNotFoundError:
+                    session_expired(message.chat.id, message.chat.username, message.from_user.first_name)
                     return
-                username = f"@{message.chat.username}" if message.chat.username else ''
-                notification = f"Reporte de {username} ({message.chat.id}):\n{text}"
-                try:
-                    bot.send_message(config.admin_id, notification)
-                except Exception as e:
-                    logging.error("Error enviando reporte al super admin %s: %s", config.admin_id, e)
-                bot.send_message(message.chat.id, '✅ Reporte enviado al administrador.')
-                with shelve.open(files.sost_bd) as bd:
-                    if str(message.chat.id) in bd:
-                        del bd[str(message.chat.id)]
-                send_main_menu(message.chat.id, message.chat.username, message.from_user.first_name)
-            elif sost_num == 24:
-                term = (message.text or '').strip()
-                results = dop.search_products(term)
-                key = telebot.types.InlineKeyboardMarkup()
-                if results:
-                    text_lines = ['🔍 **Resultados:**']
-                    for sid, sname, pname, price in results:
-                        text_lines.append(f"🏬 {sname}\n📦 {pname} - ${price} USD\n")
-                        key.add(
-                            telebot.types.InlineKeyboardButton(
-                                text=f"{sname} - {pname}",
-                                callback_data=f"SEARCH_{sid}_{pname}",
-                            )
-                        )
-                    resp = '\n'.join(text_lines)
-                else:
-                    resp = '❌ No se encontraron productos.'
-                key.add(telebot.types.InlineKeyboardButton(text='🏠 Inicio', callback_data='Volver al inicio'))
-                bot.send_message(message.chat.id, resp, reply_markup=key, parse_mode='Markdown')
-                with shelve.open(files.sost_bd) as bd:
-                    if str(message.chat.id) in bd:
-                        del bd[str(message.chat.id)]
+                if dop.get_minimum(name_good, shop_id) <= amount <= dop.amount_of_goods(name_good, shop_id):
+                    sum_price = dop.order_sum(name_good, amount, shop_id)
+                    paypal_active = dop.check_vklpayments('paypal') == '✅'
+                    binance_active = dop.check_vklpayments('binance') == '✅'
 
-    elif message.chat.id in in_admin:
-        adminka.in_adminka(message.chat.id, message.text, message.chat.username, message.from_user.first_name)
+                    if not (paypal_active or binance_active):
+                        key.add(telebot.types.InlineKeyboardButton(text='🔙 Inicio', callback_data='Volver al inicio'))
+                        bot.send_message(
+                            message.chat.id,
+                            '💳 Los pagos están temporalmente desactivados.',
+                            parse_mode='Markdown',
+                            reply_markup=key,
+                        )
+                        with shelve.open(files.sost_bd) as bd:
+                            if str(message.chat.id) in bd:
+                                del bd[str(message.chat.id)]
+                        send_main_menu(message.chat.id, message.chat.username, message.from_user.first_name)
+                        return
+
+                    if paypal_active and binance_active:
+                        b1 = telebot.types.InlineKeyboardButton(text='💳 PayPal', callback_data='PayPal')
+                        b2 = telebot.types.InlineKeyboardButton(text='🟡 Binance Pay', callback_data='Binance')
+                        key.add(b1, b2)
+                    elif paypal_active:
+                        key.add(
+                            telebot.types.InlineKeyboardButton(text='💳 PayPal', callback_data='PayPal')
+                        )
+                    elif binance_active:
+                        key.add(
+                            telebot.types.InlineKeyboardButton(text='🟡 Binance Pay', callback_data='Binance')
+                        )
+                    key.add(
+                        telebot.types.InlineKeyboardButton(
+                            text='🔙 Inicio', callback_data='Volver al inicio'
+                        )
+                    )
+
+                    bot.send_message(
+                        message.chat.id,
+                        f'✅ **Has elegido:** {name_good}\n🔢 **Cantidad:** {str(amount)}\n💰 **Total del pedido:** ${str(sum_price)} USD\n\n💳 **Elige tu método de pago:**',
+                        parse_mode='Markdown',
+                        reply_markup=key,
+                    )
+
+                    with open('data/Temp/' + str(message.chat.id) + '.txt', 'w', encoding='utf-8') as f:
+                        f.write(str(amount) + '\n')
+                        f.write(str(sum_price) + '\n')
+                elif dop.get_minimum(name_good, shop_id) > amount:
+                    key.add(telebot.types.InlineKeyboardButton(text='🔙 Inicio', callback_data='Volver al inicio'))
+                    bot.send_message(
+                        message.chat.id,
+                        f'⚠️ **¡Elige una cantidad mayor!**\n\n📊 **Cantidad mínima:** {str(dop.get_minimum(name_good, shop_id))} unidades',
+                        parse_mode='Markdown',
+                        reply_markup=key,
+                    )
+                elif amount > dop.amount_of_goods(name_good, shop_id):
+                    key.add(telebot.types.InlineKeyboardButton(text='🔙 Inicio', callback_data='Volver al inicio'))
+                    bot.send_message(
+                        message.chat.id,
+                        f'⚠️ **¡Elige una cantidad menor!**\n\n📦 **Stock disponible:** {str(dop.amount_of_goods(name_good, shop_id))} unidades',
+                        parse_mode='Markdown',
+                        reply_markup=key,
+                    )
+            except Exception:
+                key.add(telebot.types.InlineKeyboardButton(text='🔙 Inicio', callback_data='Volver al inicio'))
+                bot.send_message(
+                    message.chat.id,
+                    '❌ **¡La cantidad debe ser un número válido!**\n\n🔢 Envía solo números (ej: 5)',
+                    parse_mode='Markdown',
+                    reply_markup=key,
+                )
+        elif sost_num == 23:
+            text = (message.text or '').strip()
+            if not text:
+                return
+            username = f"@{message.chat.username}" if message.chat.username else ''
+            notification = f"Reporte de {username} ({message.chat.id}):\n{text}"
+            try:
+                bot.send_message(config.admin_id, notification)
+            except Exception as e:
+                logging.error(
+                    "Error enviando reporte al super admin %s: %s",
+                    config.admin_id,
+                    e,
+                )
+            bot.send_message(message.chat.id, '✅ Reporte enviado al administrador.')
+            with shelve.open(files.sost_bd) as bd:
+                if str(message.chat.id) in bd:
+                    del bd[str(message.chat.id)]
+            send_main_menu(message.chat.id, message.chat.username, message.from_user.first_name)
+        elif sost_num == 24:
+            term = (message.text or '').strip()
+            results = dop.search_products(term)
+            key = telebot.types.InlineKeyboardMarkup()
+            if results:
+                text_lines = ['🔍 **Resultados:**']
+                for sid, sname, pname, price in results:
+                    text_lines.append(f"🏬 {sname}\n📦 {pname} - ${price} USD\n")
+                    key.add(
+                        telebot.types.InlineKeyboardButton(
+                            text=f"{sname} - {pname}",
+                            callback_data=f"SEARCH_{sid}_{pname}",
+                        )
+                    )
+                resp = '\n'.join(text_lines)
+            else:
+                resp = '❌ No se encontraron productos.'
+            key.add(telebot.types.InlineKeyboardButton(text='🏠 Inicio', callback_data='Volver al inicio'))
+            bot.send_message(message.chat.id, resp, reply_markup=key, parse_mode='Markdown')
+            with shelve.open(files.sost_bd) as bd:
+                if str(message.chat.id) in bd:
+                    del bd[str(message.chat.id)]
 
     elif '/help' == message.text:
         if dop.check_message('help') is True:
@@ -518,9 +534,17 @@ def inline(callback):
         elif callback.data.startswith('admin_store_'):
             shop_id = int(callback.data.replace('admin_store_', ''))
             dop.set_user_shop(callback.message.chat.id, shop_id)
-            if callback.message.chat.id not in in_admin:
-                in_admin.append(callback.message.chat.id)
-            adminka.show_main_admin_menu(callback.message.chat.id)
+            try:
+                con = db.get_db_connection()
+                cur = con.cursor()
+                cur.execute("SELECT name FROM shops WHERE id = ?", (shop_id,))
+                row = cur.fetchone()
+                name = row[0] if row else str(shop_id)
+            except Exception:
+                name = str(shop_id)
+            adminka.show_store_dashboard_unified(
+                callback.message.chat.id, shop_id, name
+            )
             return
         elif callback.data.startswith('SHOP_'):
             shop_id = int(callback.data.replace('SHOP_', ''))
@@ -533,8 +557,6 @@ def inline(callback):
                 name = row[0] if row else str(shop_id)
             except Exception:
                 name = str(shop_id)
-            if callback.message.chat.id not in in_admin:
-                in_admin.append(callback.message.chat.id)
             adminka.show_store_dashboard_unified(
                 callback.message.chat.id, shop_id, name
             )
@@ -851,10 +873,10 @@ if hasattr(bot, "my_chat_member_handler"):
 def handle_docs_log(message):
     """Manejar documentos enviados al bot"""
     adminka.handle_multimedia(message)
-
-    if message.chat.id in in_admin:
-        if dop.get_sost(message.chat.id) and shelve.open(files.sost_bd)[str(message.chat.id)] == 12:
-            adminka.new_files(message.document.file_id, message.chat.id)
+    if dop.get_sost(message.chat.id):
+        with shelve.open(files.sost_bd) as bd:
+            if bd.get(str(message.chat.id)) == 12:
+                adminka.new_files(message.document.file_id, message.chat.id)
 
 @bot.message_handler(content_types=['photo', 'video', 'audio', 'animation'])
 def handle_media_files(message):

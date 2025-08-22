@@ -56,22 +56,19 @@ def cancel_and_reset(chat_id):
     send_long_message(bot, chat_id, "❌ Operación cancelada.")
 
 
+def handle_cancel_command(message):
+    """Public entry point to cancel any admin flow."""
+    cancel_and_reset(message.chat.id)
+
+
 def get_prev(chat_id):
     with shelve.open(files.sost_bd) as bd:
         return bd.get(f"{chat_id}_prev", "main")
 
 
 def route_cancel(chat_id, prev):
-    if prev == "marketing":
-        show_marketing_menu(chat_id)
-    elif prev == "discount":
-        show_discount_menu(chat_id)
-    elif prev == "product":
-        show_product_menu(chat_id)
-    elif prev == "other":
-        admin_otros(chat_id, 0)
-    else:
-        show_main_admin_menu(chat_id)
+    """Legacy cancel router removed."""
+    cancel_and_reset(chat_id)
 
 
 # ---------------------------------------------------------------------------
@@ -80,40 +77,15 @@ def route_cancel(chat_id, prev):
 
 
 def show_main_admin_menu(chat_id):
-    """Mostrar el menú principal de administración usando navegación unificada."""
-    quick_actions = []
-    if chat_id == config.admin_id:
-        quick_actions.append(("💬 Respuestas", "ad_respuestas"))
-    quick_actions.extend(
-        [
-            ("📦 Surtido", "ad_surtido"),
-            ("➕ Producto", "ad_producto"),
-            ("💰 Pagos", "ad_pagos"),
-            ("📊 Stats", "ad_stats"),
-            ("📣 Difusión", "ad_difusion"),
-            ("👥 Clientes", "ad_resumen"),
-            ("📢 Marketing", "ad_marketing"),
-            ("🏷️ Categorías", "ad_categorias"),
-            ("💸 Descuentos", "ad_descuentos"),
-            ("⚙️ Otros", "ad_otros"),
-        ]
-    )
-    key = nav_system.create_universal_navigation(chat_id, "admin_main", quick_actions)
-    send_long_message(
-        bot,
-        chat_id,
-        "¡Has ingresado al panel de administración del bot!\nPara salir, presiona /start",
-        markup=key,
-    )
+    """Legacy admin menu removed."""
+    raise NotImplementedError("show_main_admin_menu has been removed")
 
 
 def session_expired(chat_id):
-    """Informar al usuario que la sesión expiró y volver al menú principal"""
+    """Legacy session handler retained for compatibility."""
     send_long_message(bot, chat_id, "❌ La sesión anterior se perdió.")
     with shelve.open(files.sost_bd) as bd:
-        if str(chat_id) in bd:
-            del bd[str(chat_id)]
-    show_main_admin_menu(chat_id)
+        bd.pop(str(chat_id), None)
 
 
 # ---------------------------------------------------------------------------
@@ -1179,163 +1151,12 @@ def finalize_product_campaign(chat_id, shop_id, product):
 # ---------------------------------------------------------------------------
 
 
-def in_adminka(chat_id, message_text, username, name_user):
-    """Minimal handler preserving legacy entry points for tests."""
-    if chat_id not in dop.get_adminlist():
-        return
-    shop_id = dop.get_shop_id(chat_id)
-    set_shop_id(shop_id)
-    if message_text == "🛒 Campaña de producto":
-        goods = dop.get_goods(shop_id)
-        if not goods:
-            send_long_message(bot, chat_id, "No hay productos disponibles.")
-            return
-        lines = ["Seleccione el producto para la campaña:"]
-        lines.extend(f"- {g}" for g in goods)
-        send_long_message(bot, chat_id, "\n".join(lines))
-        set_state(chat_id, 190, "marketing")
-    else:
-        show_main_admin_menu(chat_id)
+def in_adminka(*args, **kwargs):
+    """Legacy admin entry removed."""
+    raise NotImplementedError("in_adminka has been removed")
 
 
-def text_analytics(message_text, chat_id):
-    shop_id = dop.get_shop_id(chat_id)
-    normalized = message_text.strip().lower()
-    if normalized in (
-        "cancelar",
-        "volver al menú principal",
-        "volver al menu principal",
-        "/adm",
-    ):
-        cancel_and_reset(chat_id)
-        show_main_admin_menu(chat_id)
-        return
-
-    if dop.get_sost(chat_id):
-        with shelve.open(files.sost_bd) as bd:
-            sost_num = bd.get(str(chat_id))
-
-        if sost_num in (400, 401):
-            handle_payment_credentials(chat_id, message_text)
-        elif sost_num == 190:
-            goods = dop.get_goods(shop_id)
-            if message_text not in goods:
-                send_long_message(bot, chat_id, "Selección inválida. Intente nuevamente.")
-                return
-            finalize_product_campaign(chat_id, shop_id, message_text)
-        elif sost_num == 900:
-            # Recibir nombre de tienda
-            with shelve.open(files.sost_bd) as bd:
-                bd[f"{chat_id}_new_shop_name"] = message_text.strip()
-            key = nav_system.create_universal_navigation(
-                chat_id, "admin_create_shop_admin"
-            )
-            send_long_message(
-                bot,
-                chat_id,
-                "👤 Ingresa el ID del administrador de la tienda:",
-                markup=key,
-            )
-            set_state(chat_id, 901, "main")
-        elif sost_num == 901:
-            # Recibir ID del administrador y crear tienda
-            try:
-                admin_id = int(message_text.strip())
-            except ValueError:
-                send_long_message(bot, chat_id, "❌ ID inválido. Intenta nuevamente:")
-                return
-            with shelve.open(files.sost_bd) as bd:
-                name = bd.pop(f"{chat_id}_new_shop_name", "Tienda")
-                if str(chat_id) in bd:
-                    del bd[str(chat_id)]
-            send_long_message(bot, chat_id, "⏳ Creando tienda...")
-            shop_id_new = dop.create_shop(name, admin_id=admin_id)
-            send_long_message(
-                bot,
-                chat_id,
-                f"✅ Tienda '{name}' creada (ID: {shop_id_new}).",
-            )
-            show_superadmin_dashboard(chat_id, chat_id)
-        elif sost_num == 410:
-            # Guardar mensaje de inicio
-            dop.save_message("start", message_text)
-            clear_state(chat_id)
-            send_long_message(bot, chat_id, "✅ Mensaje actualizado.")
-            configure_responses(shop_id, chat_id)
-        elif sost_num == 411:
-            # Guardar mensaje de ayuda
-            dop.save_message("help", message_text)
-            clear_state(chat_id)
-            send_long_message(bot, chat_id, "✅ Mensaje actualizado.")
-            configure_responses(shop_id, chat_id)
-        elif sost_num == 412:
-            # Guardar mensaje post-compra
-            dop.save_message("after_buy", message_text)
-            clear_state(chat_id)
-            send_long_message(bot, chat_id, "✅ Mensaje actualizado.")
-            configure_responses(shop_id, chat_id)
-        elif sost_num == 310:
-            # Nombre del nuevo producto
-            name = message_text.strip()
-            with shelve.open(files.sost_bd) as bd:
-                data = bd.get(f"{chat_id}_new_product", {})
-                data["name"] = name
-                bd[f"{chat_id}_new_product"] = data
-            add_prod_step_price(chat_id, shop_id)
-        elif sost_num == 311:
-            # Precio del producto
-            try:
-                price = int(message_text.strip())
-            except ValueError:
-                send_long_message(bot, chat_id, "❌ Precio inválido. Intenta nuevamente:")
-                return
-            with shelve.open(files.sost_bd) as bd:
-                data = bd.get(f"{chat_id}_new_product", {})
-                data["price"] = price
-                bd[f"{chat_id}_new_product"] = data
-            add_prod_step_media(chat_id, shop_id)
-        elif sost_num == 312:
-            # Texto en lugar de multimedia
-            if normalized == "omitir":
-                add_prod_step_stock(chat_id, shop_id)
-            else:
-                send_long_message(bot, chat_id, "❌ Envía un archivo o escribe 'omitir'.")
-        elif sost_num == 313:
-            # Stock inicial y creación del producto
-            try:
-                stock = int(message_text.strip())
-            except ValueError:
-                send_long_message(bot, chat_id, "❌ Stock inválido. Intenta nuevamente:")
-                return
-            with shelve.open(files.sost_bd) as bd:
-                data = bd.pop(f"{chat_id}_new_product", {})
-            clear_state(chat_id)
-            name = data.get("name", "Producto")
-            price = data.get("price", 0)
-            dop.create_product(
-                name,
-                "",
-                "manual",
-                1,
-                price,
-                "x",
-                media_file_id=data.get("media_file_id"),
-                media_type=data.get("media_type"),
-                media_caption=data.get("media_caption"),
-                manual_delivery=1,
-                manual_stock=stock,
-                shop_id=data.get("shop_id", shop_id),
-            )
-            key = nav_system.create_universal_navigation(
-                chat_id, "product_created", data.get("shop_id", shop_id)
-            )
-            send_long_message(
-                bot,
-                chat_id,
-                f"✅ Producto '{name}' creado.",
-                markup=key,
-            )
-            nav_system.reset(chat_id)
-        else:
-            clear_state(chat_id)
+def text_analytics(*args, **kwargs):
+    """Legacy text handler removed."""
+    raise NotImplementedError("text_analytics has been removed")
 
