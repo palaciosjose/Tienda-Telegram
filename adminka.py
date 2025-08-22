@@ -574,11 +574,82 @@ def route_superadmin_callback(callback_data, chat_id, user_id):
 # ---------------------------------------------------------------------------
 
 
-def admin_respuestas(chat_id, store_id):
-    key = nav_system.create_universal_navigation(chat_id, "admin_respuestas")
-    send_long_message(
-        bot, chat_id, "💬 Gestión de respuestas no disponible.", markup=key
+def configure_responses(store_id, chat_id):
+    """Show editable bot responses and actions for each template."""
+
+    templates = {
+        "start": "Inicio",
+        "help": "Ayuda",
+        "after_buy": "Post-compra",
+    }
+
+    lines = []
+    quick_actions = []
+    with shelve.open(files.bot_message_bd) as bd:
+        for t, label in templates.items():
+            status = "✅" if t in bd else "❌"
+            lines.append(f"{label}: {status}")
+            quick_actions.append((f"✏️ {label}", f"response_edit_{t}"))
+            if t in bd:
+                quick_actions.append((f"👁️ {label}", f"response_preview_{t}"))
+
+    box = render_box(lines, title="Respuestas")
+    key = nav_system.create_universal_navigation(
+        chat_id, "configure_responses", quick_actions
     )
+    send_long_message(bot, chat_id, box, markup=key, parse_mode="Markdown")
+
+
+def admin_respuestas(chat_id, store_id):
+    """Backward compatible entry for response configuration."""
+    configure_responses(store_id, chat_id)
+
+
+def response_edit_start(chat_id, store_id):
+    set_state(chat_id, 410, prev="responses")
+    key = nav_system.create_universal_navigation(chat_id, "response_edit_start")
+    send_long_message(
+        bot, chat_id, "✏️ Envía el nuevo mensaje de inicio:", markup=key
+    )
+
+
+def response_edit_help(chat_id, store_id):
+    set_state(chat_id, 411, prev="responses")
+    key = nav_system.create_universal_navigation(chat_id, "response_edit_help")
+    send_long_message(
+        bot, chat_id, "✏️ Envía el nuevo mensaje de ayuda:", markup=key
+    )
+
+
+def response_edit_after_buy(chat_id, store_id):
+    set_state(chat_id, 412, prev="responses")
+    key = nav_system.create_universal_navigation(chat_id, "response_edit_after_buy")
+    send_long_message(
+        bot, chat_id, "✏️ Envía el nuevo mensaje post-compra:", markup=key
+    )
+
+
+def response_preview_start(chat_id, store_id):
+    with shelve.open(files.bot_message_bd) as bd:
+        text = bd.get("start", "❌ Sin configurar")
+    key = nav_system.create_universal_navigation(chat_id, "response_preview_start")
+    send_long_message(bot, chat_id, text, markup=key, parse_mode="Markdown")
+
+
+def response_preview_help(chat_id, store_id):
+    with shelve.open(files.bot_message_bd) as bd:
+        text = bd.get("help", "❌ Sin configurar")
+    key = nav_system.create_universal_navigation(chat_id, "response_preview_help")
+    send_long_message(bot, chat_id, text, markup=key, parse_mode="Markdown")
+
+
+def response_preview_after_buy(chat_id, store_id):
+    with shelve.open(files.bot_message_bd) as bd:
+        text = bd.get("after_buy", "❌ Sin configurar")
+    key = nav_system.create_universal_navigation(
+        chat_id, "response_preview_after_buy"
+    )
+    send_long_message(bot, chat_id, text, markup=key, parse_mode="Markdown")
 
 
 def admin_surtido(chat_id, store_id):
@@ -1027,6 +1098,16 @@ nav_system.register("paypal_set_key", paypal_set_key)
 nav_system.register("binance_enable", binance_enable)
 nav_system.register("binance_disable", binance_disable)
 nav_system.register("binance_set_key", binance_set_key)
+nav_system.register(
+    "configure_responses",
+    lambda chat_id, store_id: configure_responses(store_id, chat_id),
+)
+nav_system.register("response_edit_start", response_edit_start)
+nav_system.register("response_edit_help", response_edit_help)
+nav_system.register("response_edit_after_buy", response_edit_after_buy)
+nav_system.register("response_preview_start", response_preview_start)
+nav_system.register("response_preview_help", response_preview_help)
+nav_system.register("response_preview_after_buy", response_preview_after_buy)
 
 
 # Wrapper used in tests to dispatch callbacks without the legacy system
@@ -1160,6 +1241,24 @@ def text_analytics(message_text, chat_id):
                 f"✅ Tienda '{name}' creada (ID: {shop_id_new}).",
             )
             show_superadmin_dashboard(chat_id, chat_id)
+        elif sost_num == 410:
+            # Guardar mensaje de inicio
+            dop.save_message("start", message_text)
+            clear_state(chat_id)
+            send_long_message(bot, chat_id, "✅ Mensaje actualizado.")
+            configure_responses(shop_id, chat_id)
+        elif sost_num == 411:
+            # Guardar mensaje de ayuda
+            dop.save_message("help", message_text)
+            clear_state(chat_id)
+            send_long_message(bot, chat_id, "✅ Mensaje actualizado.")
+            configure_responses(shop_id, chat_id)
+        elif sost_num == 412:
+            # Guardar mensaje post-compra
+            dop.save_message("after_buy", message_text)
+            clear_state(chat_id)
+            send_long_message(bot, chat_id, "✅ Mensaje actualizado.")
+            configure_responses(shop_id, chat_id)
         elif sost_num == 310:
             # Nombre del nuevo producto
             name = message_text.strip()
