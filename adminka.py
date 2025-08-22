@@ -732,21 +732,21 @@ def add_prod_step_name(chat_id, store_id):
     set_state(chat_id, 310, prev="product")
     with shelve.open(files.sost_bd) as bd:
         bd[f"{chat_id}_new_product"] = {"shop_id": store_id}
-    key = nav_system.create_universal_navigation(chat_id, "add_prod_name")
+    key = nav_system.create_universal_navigation(chat_id, "add_prod_name", store_id)
     send_long_message(bot, chat_id, "📝 Ingresa el nombre del producto:", markup=key)
 
 
 def add_prod_step_price(chat_id, store_id):
     """Solicitar precio del producto."""
     set_state(chat_id, 311, prev="product")
-    key = nav_system.create_universal_navigation(chat_id, "add_prod_price")
+    key = nav_system.create_universal_navigation(chat_id, "add_prod_price", store_id)
     send_long_message(bot, chat_id, "💰 Ingresa el precio del producto:", markup=key)
 
 
 def add_prod_step_media(chat_id, store_id):
     """Solicitar multimedia opcional para el producto."""
     set_state(chat_id, 312, prev="product")
-    key = nav_system.create_universal_navigation(chat_id, "add_prod_media")
+    key = nav_system.create_universal_navigation(chat_id, "add_prod_media", store_id)
     send_long_message(
         bot,
         chat_id,
@@ -758,7 +758,7 @@ def add_prod_step_media(chat_id, store_id):
 def add_prod_step_stock(chat_id, store_id):
     """Solicitar stock inicial y finalizar."""
     set_state(chat_id, 313, prev="product")
-    key = nav_system.create_universal_navigation(chat_id, "add_prod_stock")
+    key = nav_system.create_universal_navigation(chat_id, "add_prod_stock", store_id)
     send_long_message(bot, chat_id, "📦 Ingresa el stock inicial:", markup=key)
 
 
@@ -1326,13 +1326,16 @@ def text_analytics(message_text, chat_id):
                 manual_stock=stock,
                 shop_id=data.get("shop_id", shop_id),
             )
-            key = nav_system.create_universal_navigation(chat_id, "product_created")
+            key = nav_system.create_universal_navigation(
+                chat_id, "product_created", data.get("shop_id", shop_id)
+            )
             send_long_message(
                 bot,
                 chat_id,
                 f"✅ Producto '{name}' creado.",
                 markup=key,
             )
+            nav_system.reset(chat_id)
         else:
             clear_state(chat_id)
 

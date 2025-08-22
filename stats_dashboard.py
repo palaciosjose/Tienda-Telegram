@@ -21,7 +21,7 @@ def show_stats_dashboard(store_id, chat_id):
     lines = ["📊 *Estadísticas*", "```", *box, "```"]
     quick_actions = [("📈 Ventas", "stats_sales"), ("👥 Usuarios", "stats_users")]
     markup = nav_system.create_universal_navigation(
-        chat_id, f"stats_dashboard_{store_id}", quick_actions
+        chat_id, f"stats_dashboard_{store_id}", store_id, quick_actions
     )
     send_long_message(bot, chat_id, "\n".join(lines), markup=markup, parse_mode="Markdown")
 
@@ -35,7 +35,7 @@ def show_sales_report(chat_id, store_id):
     else:
         lines.append("Sin datos")
     markup = nav_system.create_universal_navigation(
-        chat_id, f"stats_sales_{store_id}"
+        chat_id, f"stats_sales_{store_id}", store_id
     )
     send_long_message(bot, chat_id, "\n".join(lines), markup=markup, parse_mode="Markdown")
 
@@ -49,7 +49,7 @@ def show_users_report(chat_id, store_id):
     else:
         lines.append("Sin datos")
     markup = nav_system.create_universal_navigation(
-        chat_id, f"stats_users_{store_id}"
+        chat_id, f"stats_users_{store_id}", store_id
     )
     send_long_message(bot, chat_id, "\n".join(lines), markup=markup, parse_mode="Markdown")
 

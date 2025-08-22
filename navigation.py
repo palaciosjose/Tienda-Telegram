@@ -31,7 +31,7 @@ class UnifiedNavigationSystem:
                 usage[name] = usage.get(name, 0) + 1
             action(chat_id, store_id)
 
-    def create_universal_navigation(self, chat_id, page, quick_actions=None):
+    def create_universal_navigation(self, chat_id, page, store_id=None, quick_actions=None):
         """Create markup with provided quick actions plus home and cancel.
 
         Parameters
@@ -41,11 +41,18 @@ class UnifiedNavigationSystem:
         page:
             Name of the current page.  It is stored in the breadcrumb trail
             so that previous pages can be recovered if needed.
+        store_id:
+            Optional store identifier.  Kept for future use.  Older call sites
+            may omit this argument, in which case the third positional argument
+            is interpreted as ``quick_actions`` for backwards compatibility.
         quick_actions:
             Iterable with ``(text, callback_data)`` pairs that will be rendered
             before the standard home and cancel buttons.
         """
 
+        if quick_actions is None and not isinstance(store_id, int):
+            quick_actions = store_id
+            store_id = None
         if quick_actions is None:
             quick_actions = []
 

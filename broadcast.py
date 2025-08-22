@@ -36,7 +36,7 @@ def start_broadcast(store_id: int, chat_id: int) -> None:
         if state["step"] == 0:
             state["step"] = 1
             bd[key] = state
-            markup = nav_system.create_universal_navigation(chat_id, "broadcast_content")
+            markup = nav_system.create_universal_navigation(chat_id, "broadcast_content", store_id)
             send_long_message(
                 bot,
                 chat_id,
@@ -46,14 +46,14 @@ def start_broadcast(store_id: int, chat_id: int) -> None:
             return
         if state["step"] == 1:
             if not state.get("text") and not state.get("media"):
-                markup = nav_system.create_universal_navigation(chat_id, "broadcast_content")
+                markup = nav_system.create_universal_navigation(chat_id, "broadcast_content", store_id)
                 send_long_message(bot, chat_id, "📣 Envía el mensaje para la difusión.", markup=markup)
                 return
             state["step"] = 2
             bd[key] = state
         if state["step"] == 2:
             if not state.get("audience"):
-                markup = nav_system.create_universal_navigation(chat_id, "broadcast_audience")
+                markup = nav_system.create_universal_navigation(chat_id, "broadcast_audience", store_id)
                 send_long_message(
                     bot,
                     chat_id,
@@ -65,7 +65,10 @@ def start_broadcast(store_id: int, chat_id: int) -> None:
             bd[key] = state
         if state["step"] == 3:
             markup = nav_system.create_universal_navigation(
-                chat_id, "broadcast_ready", [("👁️ Vista previa", "broadcast_preview")]
+                chat_id,
+                "broadcast_ready",
+                store_id,
+                [("👁️ Vista previa", "broadcast_preview")],
             )
             send_long_message(bot, chat_id, "✅ Mensaje listo. Revisa la vista previa.", markup=markup)
 
@@ -76,7 +79,7 @@ def broadcast_preview(chat_id: int, store_id: int) -> None:
     with shelve.open(files.sost_bd) as bd:
         state = bd.get(key)
     if not state:
-        markup = nav_system.create_universal_navigation(chat_id, "broadcast_preview")
+        markup = nav_system.create_universal_navigation(chat_id, "broadcast_preview", store_id)
         send_long_message(bot, chat_id, "❌ No hay mensaje para previsualizar.", markup=markup)
         return
     text = state.get("text", "")
@@ -87,7 +90,10 @@ def broadcast_preview(chat_id: int, store_id: int) -> None:
     else:
         send_long_message(bot, chat_id, text)
     markup = nav_system.create_universal_navigation(
-        chat_id, "broadcast_preview", [("✅ Confirmar", "broadcast_confirm")]
+        chat_id,
+        "broadcast_preview",
+        store_id,
+        [("✅ Confirmar", "broadcast_confirm")],
     )
     send_long_message(bot, chat_id, f"Audiencia: {audience}", markup=markup)
 
@@ -98,7 +104,7 @@ def broadcast_confirm(chat_id: int, store_id: int) -> None:
     with shelve.open(files.sost_bd) as bd:
         state = bd.get(key)
         if not state:
-            markup = nav_system.create_universal_navigation(chat_id, "broadcast_confirm")
+            markup = nav_system.create_universal_navigation(chat_id, "broadcast_confirm", store_id)
             send_long_message(bot, chat_id, "❌ No hay difusión pendiente.", markup=markup)
             return
         text = state.get("text", "")
@@ -106,8 +112,9 @@ def broadcast_confirm(chat_id: int, store_id: int) -> None:
         audience = state.get("audience", "all")
         bd.pop(key, None)
     result = dop.broadcast_message(audience, 1000000, text, media=media, shop_id=store_id)
-    markup = nav_system.create_universal_navigation(chat_id, "broadcast_done")
+    markup = nav_system.create_universal_navigation(chat_id, "broadcast_done", store_id)
     send_long_message(bot, chat_id, result, markup=markup)
+    nav_system.reset(chat_id)
 
 
 # Register callbacks with navigation system
