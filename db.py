@@ -183,6 +183,81 @@ def get_store_overview(store_id):
     return overview
 
 
+def get_sales_metrics(store_id):
+    """Return sales totals for today, this month and overall."""
+    stats = {"today": 0, "month": 0, "total": 0}
+    try:
+        con = get_db_connection()
+        cur = con.cursor()
+        cur.execute(
+            "SELECT COALESCE(SUM(price),0) FROM purchases WHERE shop_id=?",
+            (store_id,),
+        )
+        stats["total"] = cur.fetchone()[0] or 0
+        cur.execute(
+            "SELECT COALESCE(SUM(price),0) FROM purchases WHERE shop_id=? AND DATE(timestamp)=DATE('now','localtime')",
+            (store_id,),
+        )
+        stats["today"] = cur.fetchone()[0] or 0
+        cur.execute(
+            "SELECT COALESCE(SUM(price),0) FROM purchases WHERE shop_id=? AND strftime('%Y-%m',timestamp)=strftime('%Y-%m','now','localtime')",
+            (store_id,),
+        )
+        stats["month"] = cur.fetchone()[0] or 0
+    except Exception:
+        pass
+    return stats
+
+
+def get_user_metrics(store_id):
+    """Return counts of unique buyers for today, this month and overall."""
+    stats = {"today": 0, "month": 0, "total": 0}
+    try:
+        con = get_db_connection()
+        cur = con.cursor()
+        cur.execute(
+            "SELECT COUNT(DISTINCT id) FROM purchases WHERE shop_id=?",
+            (store_id,),
+        )
+        stats["total"] = cur.fetchone()[0] or 0
+        cur.execute(
+            "SELECT COUNT(DISTINCT id) FROM purchases WHERE shop_id=? AND DATE(timestamp)=DATE('now','localtime')",
+            (store_id,),
+        )
+        stats["today"] = cur.fetchone()[0] or 0
+        cur.execute(
+            "SELECT COUNT(DISTINCT id) FROM purchases WHERE shop_id=? AND strftime('%Y-%m',timestamp)=strftime('%Y-%m','now','localtime')",
+            (store_id,),
+        )
+        stats["month"] = cur.fetchone()[0] or 0
+    except Exception:
+        pass
+    return stats
+
+
+def get_user_timeseries(store_id=None, days=7):
+    """Return daily unique buyer counts for the last ``days`` days."""
+    con = get_db_connection()
+    cur = con.cursor()
+    params = []
+    query = (
+        "SELECT substr(timestamp,1,10) AS day, COUNT(DISTINCT id) AS users "
+        "FROM purchases"
+    )
+    if store_id is not None:
+        query += " WHERE shop_id=?"
+        params.append(store_id)
+    query += " GROUP BY day ORDER BY day DESC LIMIT ?"
+    params.append(days)
+    try:
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        rows.reverse()
+        return [{"day": r[0], "users": r[1]} for r in rows]
+    except Exception:
+        return []
+
+
 def _ensure_global_config_table(cur):
     """Ensure the global_config table exists."""
     cur.execute(
