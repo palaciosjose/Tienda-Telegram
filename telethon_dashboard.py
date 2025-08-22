@@ -93,6 +93,6 @@ def show_telethon_dashboard(chat_id, store_id):
     ]
 
     markup = nav_system.create_universal_navigation(
-        chat_id, f"telethon_dashboard_{store_id}", quick_actions
+        chat_id, f"telethon_dashboard_{store_id}", store_id, quick_actions
     )
     send_long_message(bot, chat_id, "\n".join(lines), markup=markup, parse_mode="Markdown")

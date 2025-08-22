@@ -52,6 +52,7 @@ def show_global_metrics(chat_id, user_id):
     key = nav_system.create_universal_navigation(
         chat_id,
         'global_metrics',
+        0,
         [
             ('📊 Reportes', 'global_metrics'),
             ('⚠️ Alertas', 'global_alerts'),
@@ -85,6 +86,7 @@ def show_pending_alerts(chat_id, user_id):
     key = nav_system.create_universal_navigation(
         chat_id,
         'global_alerts',
+        0,
         [('⬅️ Volver', 'global_metrics')],
     )
     send_long_message(bot, chat_id, '\n'.join(lines), markup=key, parse_mode='Markdown')
