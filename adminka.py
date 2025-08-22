@@ -812,6 +812,21 @@ def manage_products(chat_id, store_id):
     show_product_list(store_id, chat_id)
 
 
+def route_callback(callback_data, chat_id, store_id):
+    """Dispatch product-related callbacks to their handlers."""
+    router = {
+        "product_edit": lambda c, s, name: edit_product(c, s, name),
+        "product_toggle": lambda c, s, name: toggle_product(c, s, name),
+        "product_page": lambda c, s, page: show_product_list(s, c, int(page)),
+    }
+    for prefix, handler in router.items():
+        if callback_data.startswith(prefix + "_"):
+            arg = callback_data[len(prefix) + 1 :]
+            handler(chat_id, store_id, arg)
+            return True
+    return False
+
+
 """
 PayPal/Binance configuration
 ---------------------------
