@@ -181,3 +181,8 @@ def test_send(shop_id):
 def restart_daemon(shop_id):
     """Placeholder to restart the telethon daemon for a shop."""
     return True
+
+
+def distribute_campaign(shop_id, campaign_id=None):
+    """Placeholder to trigger automatic topic distribution for a campaign."""
+    return True
