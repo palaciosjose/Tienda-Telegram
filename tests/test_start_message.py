@@ -62,6 +62,35 @@ def test_admin_start_shows_selector(monkeypatch, tmp_path):
     assert called.get("args") == (1, None)
 
 
+def test_superadmin_start_shows_selector(monkeypatch, tmp_path):
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    sid = dop.create_shop("S1", admin_id=1)
+    dop.set_user_shop(1, sid)
+
+    monkeypatch.setattr(dop, "get_adminlist", lambda: [])
+    monkeypatch.setattr(dop, "get_sost", lambda cid: False)
+    monkeypatch.setattr(dop, "user_loger", lambda chat_id=0: None)
+    monkeypatch.setattr(main.db, "get_user_role", lambda uid: "superadmin")
+
+    called = {}
+
+    def fake_select(chat_id, message=None):
+        called["args"] = (chat_id, message)
+
+    monkeypatch.setattr(main, "show_shop_selection", fake_select)
+
+    class Msg:
+        def __init__(self):
+            self.text = "/start"
+            self.chat = types.SimpleNamespace(id=1, username="super")
+            self.from_user = types.SimpleNamespace(first_name="Boss")
+            self.content_type = "text"
+
+    main.message_send(Msg())
+    assert called.get("args") == (1, None)
+
+
 def test_shop_callback_loads_dashboard(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     import sys
