@@ -16,7 +16,7 @@ def test_discount_creation_and_application(monkeypatch, tmp_path):
     conn.commit()
     conn.close()
 
-    start = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+    start = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=1)
     dop.create_discount(20, start, None, 1, 1)
 
     assert dop.get_active_discount('Prod', 1) == 20
