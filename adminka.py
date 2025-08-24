@@ -930,8 +930,21 @@ def admin_difusion(chat_id, store_id):
 
 
 def admin_resumen(chat_id, store_id):
-    key = nav_system.create_universal_navigation(chat_id, "admin_resumen")
-    send_long_message(bot, chat_id, "👥 Clientes no disponible.", markup=key)
+    """Mostrar resumen de clientes y opción para limpieza."""
+    try:
+        lines = dop.get_buyers_summary(store_id)
+    except Exception:
+        lines = []
+
+    if not lines:
+        lines = ["Sin clientes registrados."]
+
+    quick_actions = [("🗑️ Limpiar", "clients_clear")]
+    key = nav_system.create_universal_navigation(
+        chat_id, "admin_resumen", quick_actions
+    )
+    message = "\n".join(["👥 *Clientes*", *lines])
+    send_long_message(bot, chat_id, message, markup=key, parse_mode="Markdown")
 
 
 def admin_marketing(chat_id, store_id):
@@ -939,8 +952,27 @@ def admin_marketing(chat_id, store_id):
 
 
 def admin_categorias(chat_id, store_id):
-    key = nav_system.create_universal_navigation(chat_id, "admin_categorias")
-    send_long_message(bot, chat_id, "🏷️ Categorías no disponible.", markup=key)
+    """Listado y administración básica de categorías."""
+    try:
+        cats = dop.list_categories(store_id)
+    except Exception:
+        cats = []
+
+    lines = ["🏷️ *Categorías*"]
+    if not cats:
+        lines.append("Sin categorías.")
+    else:
+        lines.extend(f"{cid}. {name}" for cid, name in cats)
+
+    quick_actions = [
+        ("➕ Nueva", "category_add"),
+        ("✏️ Renombrar", "category_rename"),
+        ("🗑️ Borrar", "category_delete"),
+    ]
+    key = nav_system.create_universal_navigation(
+        chat_id, "admin_categorias", quick_actions
+    )
+    send_long_message(bot, chat_id, "\n".join(lines), markup=key, parse_mode="Markdown")
 
 
 def manage_discounts(store_id, chat_id):
@@ -1010,28 +1042,184 @@ def admin_otros(chat_id, store_id):
 
 
 def discount_add(chat_id, store_id):
+    """Crear un descuento simple para la tienda."""
+    now = datetime.datetime.utcnow().isoformat()
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        cur.execute(
+            "INSERT INTO discounts (percent, start_time, shop_id) VALUES (10, ?, ?)",
+            (now, store_id),
+        )
+        con.commit()
+        msg = "✅ Descuento del 10% añadido."
+    except Exception:
+        msg = "❌ No se pudo crear el descuento."
     key = nav_system.create_universal_navigation(chat_id, "discount_add")
-    send_long_message(bot, chat_id, "Añadir descuento no disponible.", markup=key)
+    send_long_message(bot, chat_id, msg, markup=key)
 
 
 def discount_edit(chat_id, store_id):
+    """Incrementar en 5% el primer descuento encontrado."""
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        cur.execute(
+            "SELECT id FROM discounts WHERE shop_id=? ORDER BY id LIMIT 1",
+            (store_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            msg = "❌ No hay descuentos para editar."
+        else:
+            did = row[0]
+            cur.execute(
+                "UPDATE discounts SET percent = percent + 5 WHERE id=?",
+                (did,),
+            )
+            con.commit()
+            msg = f"✏️ Descuento #{did} actualizado."
+    except Exception:
+        msg = "❌ Error al editar descuento."
     key = nav_system.create_universal_navigation(chat_id, "discount_edit")
-    send_long_message(bot, chat_id, "Editar descuento no disponible.", markup=key)
+    send_long_message(bot, chat_id, msg, markup=key)
 
 
 def discount_delete(chat_id, store_id):
+    """Eliminar el primer descuento disponible."""
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        cur.execute(
+            "SELECT id FROM discounts WHERE shop_id=? ORDER BY id LIMIT 1",
+            (store_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            msg = "❌ No hay descuentos para eliminar."
+        else:
+            did = row[0]
+            cur.execute("DELETE FROM discounts WHERE id=?", (did,))
+            con.commit()
+            msg = f"🗑️ Descuento #{did} eliminado."
+    except Exception:
+        msg = "❌ Error al eliminar descuento."
     key = nav_system.create_universal_navigation(chat_id, "discount_delete")
-    send_long_message(bot, chat_id, "Eliminar descuento no disponible.", markup=key)
+    send_long_message(bot, chat_id, msg, markup=key)
 
 
 def store_info(chat_id, store_id):
+    """Mostrar información básica de la tienda."""
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        cur.execute("SELECT name, admin_id FROM shops WHERE id=?", (store_id,))
+        row = cur.fetchone()
+        if row:
+            name, admin_id = row
+            msg = f"🏪 *{name}*\n👤 Admin: {admin_id}"
+        else:
+            msg = "❌ Tienda no encontrada."
+    except Exception:
+        msg = "❌ Error obteniendo información."
     key = nav_system.create_universal_navigation(chat_id, "store_info")
-    send_long_message(bot, chat_id, "Información de la tienda no disponible.", markup=key)
+    send_long_message(bot, chat_id, msg, markup=key, parse_mode="Markdown")
 
 
 def store_admins(chat_id, store_id):
-    key = nav_system.create_universal_navigation(chat_id, "store_admins")
-    send_long_message(bot, chat_id, "Gestión de administradores no disponible.", markup=key)
+    """Listar y administrar administradores de la tienda."""
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        cur.execute(
+            "SELECT user_id FROM shop_users WHERE shop_id=? AND is_admin=1",
+            (store_id,),
+        )
+        admins = [str(r[0]) for r in cur.fetchall()]
+    except Exception:
+        admins = []
+
+    lines = ["👤 *Administradores*"]
+    if not admins:
+        lines.append("Ninguno")
+    else:
+        lines.extend(f"- {a}" for a in admins)
+
+    quick_actions = [("➕ Añadir", "admin_add"), ("🗑️ Quitar", "admin_remove")]
+    key = nav_system.create_universal_navigation(
+        chat_id, "store_admins", quick_actions
+    )
+    send_long_message(bot, chat_id, "\n".join(lines), markup=key, parse_mode="Markdown")
+
+
+def clients_clear(chat_id, store_id):
+    """Eliminar registros de clientes y compras."""
+    try:
+        con = db.get_db_connection()
+        cur = con.cursor()
+        cur.execute("DELETE FROM buyers WHERE shop_id=?", (store_id,))
+        cur.execute("DELETE FROM purchases WHERE shop_id=?", (store_id,))
+        con.commit()
+        msg = "🗑️ Clientes eliminados."
+    except Exception:
+        msg = "❌ No se pudo eliminar."
+    key = nav_system.create_universal_navigation(chat_id, "clients_clear")
+    send_long_message(bot, chat_id, msg, markup=key)
+
+
+def category_add(chat_id, store_id):
+    set_state(chat_id, 700, prev="admin_categorias")
+    key = nav_system.create_universal_navigation(chat_id, "category_add")
+    send_long_message(
+        bot,
+        chat_id,
+        "📛 Envía el nombre de la nueva categoría:",
+        markup=key,
+    )
+
+
+def category_rename(chat_id, store_id):
+    set_state(chat_id, 701, prev="admin_categorias")
+    key = nav_system.create_universal_navigation(chat_id, "category_rename")
+    send_long_message(
+        bot,
+        chat_id,
+        "✏️ Envía 'id nuevo_nombre' para renombrar:",
+        markup=key,
+    )
+
+
+def category_delete(chat_id, store_id):
+    set_state(chat_id, 702, prev="admin_categorias")
+    key = nav_system.create_universal_navigation(chat_id, "category_delete")
+    send_long_message(
+        bot,
+        chat_id,
+        "🗑️ Envía el ID de la categoría a eliminar:",
+        markup=key,
+    )
+
+
+def admin_add(chat_id, store_id):
+    set_state(chat_id, 710, prev="store_admins")
+    key = nav_system.create_universal_navigation(chat_id, "admin_add")
+    send_long_message(
+        bot,
+        chat_id,
+        "➕ Envía el ID del usuario a agregar:",
+        markup=key,
+    )
+
+
+def admin_remove(chat_id, store_id):
+    set_state(chat_id, 711, prev="store_admins")
+    key = nav_system.create_universal_navigation(chat_id, "admin_remove")
+    send_long_message(
+        bot,
+        chat_id,
+        "🗑️ Envía el ID del admin a quitar:",
+        markup=key,
+    )
 
 
 nav_system.register("ad_respuestas", admin_respuestas)
@@ -1052,6 +1240,12 @@ nav_system.register("discount_edit", discount_edit)
 nav_system.register("discount_delete", discount_delete)
 nav_system.register("store_info", store_info)
 nav_system.register("store_admins", store_admins)
+nav_system.register("clients_clear", clients_clear)
+nav_system.register("category_add", category_add)
+nav_system.register("category_rename", category_rename)
+nav_system.register("category_delete", category_delete)
+nav_system.register("admin_add", admin_add)
+nav_system.register("admin_remove", admin_remove)
 nav_system.register("add_prod_step_name", add_prod_step_name)
 nav_system.register("add_prod_step_price", add_prod_step_price)
 nav_system.register("add_prod_step_media", add_prod_step_media)
