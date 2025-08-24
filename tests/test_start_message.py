@@ -168,6 +168,26 @@ def test_new_user_start_shows_selector(monkeypatch, tmp_path):
     assert called.get("args")[0] == 5
 
 
+def test_shop_selection_contains_nav_controls(monkeypatch, tmp_path):
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    dop.create_shop("S1", admin_id=1)
+
+    captured = {}
+
+    def fake_send(bot, chat_id, text, markup=None, **kwargs):
+        captured["markup"] = markup
+
+    monkeypatch.setattr(main, "send_long_message", fake_send)
+
+    main.show_shop_selection(1)
+
+    buttons = [b.text for b in captured["markup"].buttons]
+    assert "🔄 Actualizar" in buttons
+    assert "🏠 Inicio" in buttons
+    assert "❌ Cancelar" in buttons
+
+
 def test_interface_superadmin(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()

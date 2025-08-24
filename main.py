@@ -184,13 +184,10 @@ def show_main_interface(chat_id, user_id):
 def show_shop_selection(chat_id, message=None):
     """Mostrar listado de tiendas disponibles"""
     shops = dop.list_shops()
-    key = telebot.types.InlineKeyboardMarkup()
-    for sid, _, name in shops:
-        key.add(
-            telebot.types.InlineKeyboardButton(
-                text=name, callback_data=f"SELECT_SHOP_{sid}"
-            )
-        )
+    quick_actions = [(name, f"SELECT_SHOP_{sid}") for sid, _, name in shops]
+    key = nav_system.create_universal_navigation(
+        chat_id, "shop_selector", quick_actions=quick_actions
+    )
     if message is not None:
         ok = dop.safe_edit_message(
             bot, message, "Seleccione una tienda:", reply_markup=key
@@ -203,6 +200,14 @@ def show_shop_selection(chat_id, message=None):
             send_long_message(bot, chat_id, "Seleccione una tienda:", markup=key)
     else:
         send_long_message(bot, chat_id, "Seleccione una tienda:", markup=key)
+
+
+def _shop_selector_nav(chat_id, _store_id=None):
+    """Wrapper para refrescar la lista de tiendas."""
+    show_shop_selection(chat_id)
+
+
+nav_system.register("shop_selector", _shop_selector_nav)
 
 
 def show_product_details(chat_id, product_name, shop_id):
