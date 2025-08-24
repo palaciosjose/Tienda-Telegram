@@ -636,6 +636,10 @@ python verify_admin_connection.py
 El script imprime el ID de administrador configurado y la lista completa de administradores.
 Luego intenta enviar un mensaje de prueba al ID principal mostrando el resultado en la consola.
 
+## Scripts obsoletos
+
+Los scripts `fix_discount_loop.py` y `fix_discount_loop_v2.py` se retiraron y ya no forman parte del proyecto. Para consultarlos, revisa el historial de commits o la carpeta de archivos archivados.
+
 ## Licencia
 
 Este proyecto se distribuye bajo la licencia [MIT](LICENSE).
