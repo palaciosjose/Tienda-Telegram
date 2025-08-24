@@ -266,6 +266,22 @@ Los botones `Mi Tienda`, `Productos`, `Marketing`, `Telethon`, `⬅️ Cambiar T
 y `🔄 Actualizar` se presentan junto a `🏠 Inicio` y `❌ Cancelar`, imitando la
 navegación clásica de BotFather.
 
+#### Campañas y Telethon desde el dashboard
+
+Desde el panel de una tienda puedes gestionar campañas y el servicio de
+Telethon sin comandos adicionales:
+
+* **📢 Marketing** abre un resumen con campañas activas y envíos programados.
+  Sus acciones rápidas permiten crear una campaña (**➕ Nueva**), consultar las
+  vigentes (**📋 Activas**) o revisar el estado de Telethon (**🤖 Telethon**).
+* **🤖 Telethon** muestra métricas del daemon y ofrece controles directos:
+  **🧵 Topics** (`quick_detect`) detecta temas disponibles, **✉️ Prueba**
+  (`quick_test`) realiza un envío de prueba y **♻️ Reiniciar** (`quick_restart`)
+  reinicia el proceso.
+
+Estas opciones facilitan iniciar campañas y administrar el daemon desde la
+interfaz gráfica.
+
 ### Configuración de Telethon
 
 Para habilitar el envío desde una cuenta de usuario:
