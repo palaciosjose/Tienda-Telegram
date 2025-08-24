@@ -1,4 +1,5 @@
 import telebot, sqlite3, shelve, os, json, re, datetime
+from datetime import timezone
 import config, dop, files
 import db
 import telethon_config
@@ -1043,7 +1044,7 @@ def admin_otros(chat_id, store_id):
 
 def discount_add(chat_id, store_id):
     """Crear un descuento simple para la tienda."""
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.datetime.now(timezone.utc).isoformat()
     try:
         con = db.get_db_connection()
         cur = con.cursor()
