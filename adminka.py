@@ -65,29 +65,6 @@ def get_prev(chat_id):
     with shelve.open(files.sost_bd) as bd:
         return bd.get(f"{chat_id}_prev", "main")
 
-
-def route_cancel(chat_id, prev):
-    """Legacy cancel router removed."""
-    cancel_and_reset(chat_id)
-
-
-# ---------------------------------------------------------------------------
-# Main admin menus
-# ---------------------------------------------------------------------------
-
-
-def show_main_admin_menu(chat_id):
-    """Legacy admin menu removed."""
-    raise NotImplementedError("show_main_admin_menu has been removed")
-
-
-def session_expired(chat_id):
-    """Legacy session handler retained for compatibility."""
-    send_long_message(bot, chat_id, "❌ La sesión anterior se perdió.")
-    with shelve.open(files.sost_bd) as bd:
-        bd.pop(str(chat_id), None)
-
-
 # ---------------------------------------------------------------------------
 # Dashboards
 # ---------------------------------------------------------------------------
