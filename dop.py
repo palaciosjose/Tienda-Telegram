@@ -424,35 +424,6 @@ def it_first(chat_id):
         logging.error(f"Error verificando primer arranque: {e}")
         return True
 
-def main(chat_id):
-    user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
-    user_markup.row('Configurar respuestas del bot')
-    user_markup.row('Configuración de productos', 'Cargar nuevo producto')
-    user_markup.row('Configuración de pagos')
-    user_markup.row('Estadísticas', 'Difusión')
-    user_markup.row('Otras configuraciones')
-    
-    bot.send_message(chat_id, """*¡Hola!*
-Este es el primer arranque y ahora estás en el *panel de administración.*
-Para que el bot esté listo *para trabajar* con clientes en poco tiempo, necesitas agregar métodos de pago.
-Puedes elegir entre pagos con *PayPal* y *Binance*.
-
-En este *momento* estás en el panel de administración del bot. La próxima vez, para acceder escribe /adm
-Para salir, presiona /start
-*Guía completa de configuración del bot*(recomiendo leer) - https://telegra.ph/Polnaya-nastrojka-08-31
-""", parse_mode='MarkDown', reply_markup=user_markup)
-
-    # Inicializar shelve para pagos si no existe
-    try:
-        with shelve.open(files.payments_bd) as bd:
-            bd['paypal'] = '❌'
-            bd['binance'] = '❌'
-    except Exception as e:
-        logging.error(f"Error inicializando base de pagos: {e}")
-
-    log('Primer arranque del bot')
-    new_admin(chat_id)
-
 def log(text):
     time = str(datetime.datetime.utcnow())[:22]
     try:
