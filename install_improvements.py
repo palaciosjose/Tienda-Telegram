@@ -470,12 +470,15 @@ def update_adminka_file():
     # Agregar las nuevas opciones del menú
     new_menu_options = '''
         elif '🔍 Validar Compras' == message_text:
-            user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
-            user_markup.row('🔎 Buscar por ID usuario', '🔎 Buscar por username')
-            user_markup.row('📊 Ventas generales', '📈 Estadísticas detalladas')
-            user_markup.row('🕐 Compras recientes')
-            user_markup.row('Volver al menú principal')
-            bot.send_message(chat_id, '🔍 **Panel de Validación de Compras**\\n\\nSelecciona una opción para buscar y validar compras:', reply_markup=user_markup, parse_mode='Markdown')
+            quick_actions = [
+                ('🔎 Buscar por ID usuario', '🔎 Buscar por ID usuario'),
+                ('🔎 Buscar por username', '🔎 Buscar por username'),
+                ('📊 Ventas generales', '📊 Ventas generales'),
+                ('📈 Estadísticas detalladas', '📈 Estadísticas detalladas'),
+                ('🕐 Compras recientes', '🕐 Compras recientes')
+            ]
+            key = nav_system.create_universal_navigation(chat_id, 'validar_compras', quick_actions)
+            bot.send_message(chat_id, '🔍 **Panel de Validación de Compras**\\n\\nSelecciona una opción para buscar y validar compras:', reply_markup=key, parse_mode='Markdown')
 
         elif '🔎 Buscar por ID usuario' == message_text:
             key = telebot.types.InlineKeyboardMarkup()
@@ -514,14 +517,17 @@ def update_adminka_file():
                     user_id = int(message_text)
                     result = purchase_validator.validate_purchase_by_user(user_id=user_id)
                     bot.send_message(chat_id, result, parse_mode='Markdown')
-                    
-                    user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
-                    user_markup.row('🔎 Buscar por ID usuario', '🔎 Buscar por username')
-                    user_markup.row('📊 Ventas generales', '📈 Estadísticas detalladas')
-                    user_markup.row('🕐 Compras recientes')
-                    user_markup.row('Volver al menú principal')
-                    bot.send_message(chat_id, '✅ Búsqueda completada. ¿Qué más deseas hacer?', reply_markup=user_markup)
-                    
+
+                    quick_actions = [
+                        ('🔎 Buscar por ID usuario', '🔎 Buscar por ID usuario'),
+                        ('🔎 Buscar por username', '🔎 Buscar por username'),
+                        ('📊 Ventas generales', '📊 Ventas generales'),
+                        ('📈 Estadísticas detalladas', '📈 Estadísticas detalladas'),
+                        ('🕐 Compras recientes', '🕐 Compras recientes')
+                    ]
+                    key = nav_system.create_universal_navigation(chat_id, 'validar_compras', quick_actions)
+                    bot.send_message(chat_id, '✅ Búsqueda completada. ¿Qué más deseas hacer?', reply_markup=key)
+
                     with shelve.open(files.sost_bd) as bd: del bd[str(chat_id)]
                 except ValueError:
                     bot.send_message(chat_id, '❌ El ID debe ser un número. Intenta de nuevo:')
@@ -529,14 +535,17 @@ def update_adminka_file():
             elif sost_num == 51:  # Buscar por username
                 result = purchase_validator.validate_purchase_by_user(username=message_text)
                 bot.send_message(chat_id, result, parse_mode='Markdown')
-                
-                user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
-                user_markup.row('🔎 Buscar por ID usuario', '🔎 Buscar por username')
-                user_markup.row('📊 Ventas generales', '📈 Estadísticas detalladas')
-                user_markup.row('🕐 Compras recientes')
-                user_markup.row('Volver al menú principal')
-                bot.send_message(chat_id, '✅ Búsqueda completada. ¿Qué más deseas hacer?', reply_markup=user_markup)
-                
+
+                quick_actions = [
+                    ('🔎 Buscar por ID usuario', '🔎 Buscar por ID usuario'),
+                    ('🔎 Buscar por username', '🔎 Buscar por username'),
+                    ('📊 Ventas generales', '📊 Ventas generales'),
+                    ('📈 Estadísticas detalladas', '📈 Estadísticas detalladas'),
+                    ('🕐 Compras recientes', '🕐 Compras recientes')
+                ]
+                key = nav_system.create_universal_navigation(chat_id, 'validar_compras', quick_actions)
+                bot.send_message(chat_id, '✅ Búsqueda completada. ¿Qué más deseas hacer?', reply_markup=key)
+
                 with shelve.open(files.sost_bd) as bd: del bd[str(chat_id)]
 '''
     

@@ -26,8 +26,6 @@ def test_product_campaign_creates_button(monkeypatch, tmp_path):
     monkeypatch.setattr(dop, "get_adminlist", lambda: [1])
     monkeypatch.setattr(main.adminka.dop, "get_adminlist", lambda: [1])
     monkeypatch.setattr(main.adminka.files, "sost_bd", str(tmp_path / "sost.bd"))
-    keyboard_stub = lambda *a, **k: types.SimpleNamespace(row=lambda *b, **c: None)
-    monkeypatch.setattr(main.adminka.telebot.types, "ReplyKeyboardMarkup", keyboard_stub, raising=False)
     monkeypatch.setattr(
         main.adminka.advertising,
         "get_today_stats",
@@ -107,8 +105,6 @@ def test_product_selection_triggers_campaign(monkeypatch, tmp_path):
         "get_today_stats",
         lambda: {"sent": 0, "success_rate": 100, "groups": 0},
     )
-    keyboard_stub = lambda *a, **k: types.SimpleNamespace(row=lambda *b, **c: None)
-    monkeypatch.setattr(main.adminka.telebot.types, "ReplyKeyboardMarkup", keyboard_stub, raising=False)
     monkeypatch.setattr(main.adminka, "show_marketing_menu", lambda *a, **k: None)
 
     created = {}
