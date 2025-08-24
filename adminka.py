@@ -1145,18 +1145,3 @@ def finalize_product_campaign(chat_id, shop_id, product):
             del bd[str(chat_id)]
     show_marketing_menu(chat_id)
 
-
-# ---------------------------------------------------------------------------
-# Legacy interface compatibility (minimal)
-# ---------------------------------------------------------------------------
-
-
-def in_adminka(*args, **kwargs):
-    """Legacy admin entry removed."""
-    raise NotImplementedError("in_adminka has been removed")
-
-
-def text_analytics(*args, **kwargs):
-    """Legacy text handler removed."""
-    raise NotImplementedError("text_analytics has been removed")
-
