@@ -96,6 +96,35 @@ python migrate_goods_unique_pair.py
 ```
 o `init_db.py` para crear la base desde cero.
 
+## Interfaz BotFather (“STREAMING MANAGER”)
+
+Antes de iniciar el bot conviene configurar los comandos visibles en BotFather.
+Abre un chat con **@BotFather** y envía:
+
+```text
+/setcommands
+@TuBot
+start - Mostrar tiendas
+adm - Administrar tiendas
+```
+
+Luego utiliza `/setdescription` y `/setname` si deseas que tu bot aparezca como
+`STREAMING MANAGER` en la lista de chats. Esta interfaz facilita a los
+administradores identificar rápidamente el panel de gestión.
+
+![BotFather](https://via.placeholder.com/500x160.png?text=BotFather+Streaming+Manager)
+
+Ejemplo de intercambio:
+
+```text
+Usuario: /setname
+BotFather: Choose a bot to change its name.
+Usuario: @TuBot
+BotFather: New name?
+Usuario: STREAMING MANAGER
+BotFather: Done! Your bot is now called STREAMING MANAGER.
+```
+
 ## Uso
 
 Antes de iniciar el bot por primera vez se debe crear la estructura de la base de datos. Ejecuta:
@@ -469,7 +498,7 @@ python expiration_cron.py
 `TELEGRAM_TOKEN`. Si no se define, tomará el valor configurado en `config.py` a
 través de `bot_instance.py`.
 
-## Interfaz BotFather
+## Creación del bot en BotFather
 
 Para obtener un token de bot habla con **@BotFather** en Telegram.
 El flujo básico es:
@@ -526,10 +555,17 @@ envío o ajustar la programación.
 
 ![Marketing + Telethon](https://via.placeholder.com/500x160.png?text=Marketing+Telethon)
 
-## Configuración automática Telethon
+## Configuración y control de Telethon
 
-El asistente de Telethon detecta topics y habilita el daemon de manera
-automática. Basta con ejecutar `/telethon` y seguir el progreso en pantalla.
+El asistente de Telethon detecta _topics_ y habilita el servicio de manera
+automática. Desde cualquier chat de administrador puedes enviar `/telethon` para
+abrir el panel y seguir el progreso en pantalla.
+
+```text
+Admin: /telethon
+Bot: ⚙️ Iniciando asistente de Telethon…
+Bot: Ingresa tu `api_id`:
+```
 
 ```text
 ╔══════════════════════════╗
@@ -539,7 +575,46 @@ automática. Basta con ejecutar `/telethon` y seguir el progreso en pantalla.
 ╚══════════════════════════╝
 ```
 
-![Configuración automática](https://via.placeholder.com/500x160.png?text=Auto+Telethon)
+Una vez completada la configuración, el dashboard permite **activar**, **detener**
+o **reiniciar** el daemon. Solo los superadministradores verán la opción de
+forzar un reinicio global.
+
+```text
+🔌 Estado: Activo
+[⏹️ Detener] [🔄 Reiniciar] [🏠 Inicio]
+```
+
+```text
+SuperAdmin: /telethon restart
+Bot: 🔄 Reinicio global en progreso…
+```
+
+![Configuración y control](https://via.placeholder.com/500x160.png?text=Telethon+Dashboard)
+
+## Ejemplos de dashboards con cajas ASCII
+
+A lo largo del bot se utilizan mensajes estilo _dashboard_ para mostrar
+estadísticas rápidas. Algunos ejemplos:
+
+```text
+╔════════════════════╗
+║ 📊 Ventas totales  ║
+╠════════════════════╣
+║ Usuarios:   120    ║
+║ Ventas:     430    ║
+╚════════════════════╝
+```
+
+```text
+╔════════════════════╗
+║ 🤖 Telethon        ║
+╠════════════════════╣
+║ Estado: Activo     ║
+║ Último envío: OK   ║
+╚════════════════════╝
+```
+
+![Dashboards](https://via.placeholder.com/500x160.png?text=ASCII+Dashboards)
 
 ## Navegación universal
 
@@ -560,12 +635,33 @@ Así, cualquier panel puede volver al anterior sin perder contexto.
 
 ![Navegación universal](https://via.placeholder.com/500x80.png?text=Navigation)
 
-## Comandos `/start` y `/adm`
+## Uso de `/start` y `/adm`
 
 Tras la migración a múltiples tiendas estos comandos se comportan así:
 
 - `/start` muestra la lista de tiendas disponibles y guarda la elección del usuario. Si ya tiene una tienda asignada, el comando lo lleva directo al menú principal.
 - `/adm` abre el selector de tiendas y las opciones de administración. Solo responde a los IDs autorizados; los demás reciben "No tienes permisos".
+
+```text
+Usuario: /start
+Bot: Elige una tienda:
+1️⃣ Principal
+2️⃣ Juegos
+
+Admin: /adm
+Bot: Selecciona tienda a administrar.
+```
+
+Si un usuario sin permisos ejecuta `/adm` recibirá:
+
+```text
+Usuario: /adm
+Bot: No tienes permisos.
+```
+
+Los superadministradores verán además accesos como **🛍️ Gestionar tiendas**.
+
+![Comandos básicos](https://via.placeholder.com/500x160.png?text=start+adm)
 
 Ambos comandos utilizan la navegación universal para moverse entre menús.
 
