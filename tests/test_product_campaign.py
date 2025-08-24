@@ -185,6 +185,27 @@ def test_marketing_unified_splits_long_message(monkeypatch, tmp_path):
     assert send_calls[0][1][1].startswith("1/")
 
 
+def test_marketing_unified_shows_telethon_state(monkeypatch, tmp_path):
+    dop, main, calls, bot = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    sid = dop.create_shop("S1", admin_id=1)
+
+    monkeypatch.setattr(main.adminka, "bot", bot)
+    monkeypatch.setattr(main.adminka.advertising, "get_all_campaigns", lambda: [])
+    monkeypatch.setattr(
+        main.adminka,
+        "CampaignScheduler",
+        lambda *a, **k: types.SimpleNamespace(get_pending_sends=lambda: []),
+    )
+    monkeypatch.setattr(main.adminka.telethon_manager, "get_stats", lambda s: {"active": False})
+    monkeypatch.setattr(main.adminka.dop, "get_campaign_limit", lambda s: 0)
+
+    main.adminka.show_marketing_unified(sid, 5)
+    text = calls[-1][1][1]
+    assert "Telethon" in text
+    assert "Estado: Inactivo" in text
+
+
 def test_quick_actions_dispatch(monkeypatch, tmp_path):
     dop, main, calls, bot = setup_main(monkeypatch, tmp_path)
     dop.ensure_database_schema()
