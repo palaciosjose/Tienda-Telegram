@@ -3,14 +3,13 @@ import logging
 from dotenv import load_dotenv
 
 # Leer WEBHOOK_URL antes de cargar el archivo .env
-WEBHOOK_URL = os.getenv('WEBHOOK_URL')
-if not WEBHOOK_URL:
-    raise RuntimeError("WEBHOOK_URL must be set for webhook mode")
-
-# Cargar .env solo si todas las variables obligatorias siguen ausentes
-required_before_load = ("TELEGRAM_ADMIN_ID", "TELEGRAM_BOT_TOKEN")
-if all(os.getenv(var) is None for var in required_before_load):
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+if WEBHOOK_URL is None:
+    # Cargar .env solo como respaldo
     load_dotenv()
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+    if WEBHOOK_URL is None:
+        raise RuntimeError("WEBHOOK_URL must be set for webhook mode")
 
 # Aplicar timezone desde .env si está definida
 if os.getenv('TZ'):
