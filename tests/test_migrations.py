@@ -49,3 +49,33 @@ def test_migration_adds_columns_and_tables(tmp_path, monkeypatch):
         )
         assert cur.fetchone() is not None
     conn.close()
+
+
+def test_init_db_creates_tables(tmp_path, monkeypatch):
+    """init_db.create_database should create auxiliary tables and columns."""
+    monkeypatch.chdir(tmp_path)
+
+    import init_db
+
+    # Execute script; it should succeed without raising exceptions
+    init_db.create_database()
+
+    db_path = tmp_path / "data" / "db" / "main_data.db"
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    # Check auxiliary tables exist
+    for table in ["store_topics", "global_config", "unified_logs"]:
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table,),
+        )
+        assert cur.fetchone() is not None
+
+    # Ensure telethon-related columns were added to shops table
+    cur.execute("PRAGMA table_info(shops)")
+    cols = {c[1] for c in cur.fetchall()}
+    for col in ["telethon_enabled", "max_campaigns_daily", "current_campaigns_today"]:
+        assert col in cols
+
+    conn.close()

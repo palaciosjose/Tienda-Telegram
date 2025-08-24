@@ -99,3 +99,72 @@ def test_show_global_metrics_content(monkeypatch):
     assert ('⚠️ Alertas', 'global_alerts') in buttons
     assert ('🔄 Actualizar', 'GLOBAL_REFRESH') in buttons
     assert events and events[0][0] == 'INFO'
+
+
+def test_db_get_store_stats(tmp_path, monkeypatch):
+    import sqlite3
+    import files
+    import db
+
+    db_path = tmp_path / "main.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(files, "main_db", str(db_path))
+    db.close_connection()
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE goods (shop_id INTEGER)")
+    cur.executemany("INSERT INTO goods (shop_id) VALUES (?)", [(1,), (1,), (2,)])
+    cur.execute("CREATE TABLE purchases (shop_id INTEGER, price INTEGER)")
+    cur.executemany(
+        "INSERT INTO purchases (shop_id, price) VALUES (?,?)",
+        [(1, 10), (1, 20), (2, 5)],
+    )
+    conn.commit()
+    conn.close()
+
+    assert db.get_store_stats(1) == {"products": 2, "purchases": 2, "revenue": 30}
+    assert db.get_store_stats(2) == {"products": 1, "purchases": 1, "revenue": 5}
+
+
+def test_db_global_metrics_and_topics(tmp_path, monkeypatch):
+    import sqlite3
+    import files
+    import db
+
+    db_path = tmp_path / "main.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(files, "main_db", str(db_path))
+    db.close_connection()
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    cur.execute("CREATE TABLE purchases (shop_id INTEGER, price INTEGER)")
+    cur.executemany(
+        "INSERT INTO purchases (shop_id, price) VALUES (?,?)",
+        [(1, 10), (1, 20), (2, 5)],
+    )
+    cur.execute("CREATE TABLE shops (id INTEGER PRIMARY KEY, name TEXT)")
+    cur.executemany("INSERT INTO shops (id, name) VALUES (?,?)", [(1, 'A'), (2, 'B')])
+    cur.execute("CREATE TABLE platform_config (platform TEXT, is_active INTEGER)")
+    cur.executemany(
+        "INSERT INTO platform_config (platform, is_active) VALUES ('telethon', ?)",
+        [(1,), (0,)],
+    )
+    conn.commit()
+    conn.close()
+
+    metrics = db.get_global_metrics()
+    assert metrics["revenue"] == 35
+    assert metrics["roi"] == 35
+    assert metrics["telethon_active"] == 1
+    assert metrics["telethon_total"] == 2
+    assert metrics["ranking"][0]["name"] == "A"
+
+    topics = [
+        {"group_id": "g1", "group_name": "G1", "topic_id": 1, "topic_name": "T1"},
+        {"group_id": "g2", "group_name": "G2", "topic_id": 2, "topic_name": "T2"},
+    ]
+    db.save_detected_topics(1, topics)
+    assert db.get_store_topics(1) == topics
