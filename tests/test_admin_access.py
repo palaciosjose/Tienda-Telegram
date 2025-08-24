@@ -105,6 +105,34 @@ def test_adm_command_superadmin_dashboard(monkeypatch, tmp_path):
     assert called.get('args') == (1, 1)
 
 
+def test_adm_command_superadmin_role(monkeypatch, tmp_path):
+    dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
+    dop.ensure_database_schema()
+    import config, os
+    config.admin_id = 42
+    os.environ["TELEGRAM_ADMIN_ID"] = "42"
+    monkeypatch.setattr(dop, "get_adminlist", lambda: [])
+    monkeypatch.setattr(main.db, "get_user_role", lambda uid: "superadmin")
+
+    called = {}
+
+    def fake_interface(cid, uid):
+        called['args'] = (cid, uid)
+
+    monkeypatch.setattr(main, 'show_main_interface', fake_interface)
+
+    class Msg:
+        def __init__(self):
+            self.text = '/adm'
+            self.chat = types.SimpleNamespace(id=42, username='owner')
+            self.from_user = types.SimpleNamespace(first_name='Owner')
+            self.content_type = 'text'
+
+    main.message_send(Msg())
+
+    assert called.get('args') == (42, 42)
+
+
 def test_shop_callback_opens_dashboard(monkeypatch, tmp_path):
     dop, main, calls, _ = setup_main(monkeypatch, tmp_path)
     import sys
