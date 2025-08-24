@@ -1,3 +1,6 @@
+from typing import Dict, List, Callable, Tuple
+
+
 class UnifiedNavigationSystem:
     """Provide navigation with breadcrumbs and quick actions.
 
@@ -9,13 +12,13 @@ class UnifiedNavigationSystem:
     """
 
     def __init__(self):
-        self._actions: dict[str, callable] = {}
+        self._actions: Dict[str, Callable] = {}
         # ``_history`` maps ``chat_id`` to a list of visited pages in order.
-        self._history: dict[int, list[str]] = {}
+        self._history: Dict[int, List[str]] = {}
         # ``_quick_actions`` maps ``chat_id`` to a mapping of ``page`` -> actions.
-        self._quick_actions: dict[int, dict[str, list[tuple[str, str]]]] = {}
+        self._quick_actions: Dict[int, Dict[str, List[Tuple[str, str]]]] = {}
         # ``_usage`` counts how many times each action was triggered per page.
-        self._usage: dict[int, dict[str, dict[str, int]]] = {}
+        self._usage: Dict[int, Dict[str, Dict[str, int]]] = {}
 
     def register(self, name, func):
         self._actions[name] = func
