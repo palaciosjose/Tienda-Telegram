@@ -26,7 +26,7 @@ def test_toggle_discount_features(monkeypatch, tmp_path):
     conn.commit()
     conn.close()
 
-    start = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+    start = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=1)
     dop.create_discount(10, start, None, None, 1)
     assert dop.get_active_discount('P', 1) == 10
 

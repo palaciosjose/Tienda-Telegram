@@ -425,7 +425,7 @@ def it_first(chat_id):
         return True
 
 def log(text):
-    time = str(datetime.datetime.utcnow())[:22]
+    time = str(datetime.datetime.now(datetime.UTC))[:22]
     try:
         with open(files.working_log, 'a', encoding='utf-8') as f:
             f.write(time + '    | ' + text + '\n')
@@ -2021,7 +2021,7 @@ def get_active_discount(product_or_cat_id, shop_id=1):
         else:
             category_id = product_or_cat_id
 
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         cur.execute(
             """
             SELECT percent FROM discounts
@@ -2042,7 +2042,7 @@ def update_active_discount_percent(new_percent, shop_id=1):
     try:
         con = db.get_db_connection()
         cur = con.cursor()
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         cur.execute(
             """
             UPDATE discounts
