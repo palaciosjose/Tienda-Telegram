@@ -151,16 +151,23 @@ def test_inline_global_callbacks(monkeypatch, tmp_path):
     assert ('current', 1) in called and ('handle', 'cur', 1, 0) in called
 
 
-def test_admin_menus_have_standard_buttons(monkeypatch):
+def test_main_menus_have_standard_buttons(monkeypatch):
     _patch_telebot(monkeypatch)
     import adminka
+    import telethon_config as tc
 
     markups = []
 
     def fake_send(bot, chat_id, text, markup=None, **kwargs):
         markups.append(markup)
 
+    # Patch send function across modules
     monkeypatch.setattr(adminka, 'send_long_message', fake_send)
+    monkeypatch.setattr(tc, 'send_long_message', fake_send)
+    monkeypatch.setattr(td, 'send_long_message', fake_send)
+    monkeypatch.setattr(md, 'send_long_message', fake_send)
+
+    # --- adminka dependencies ---
     monkeypatch.setattr(adminka.dop, 'get_shop_id', lambda cid: 1)
     monkeypatch.setattr(
         adminka.dop,
@@ -190,18 +197,38 @@ def test_admin_menus_have_standard_buttons(monkeypatch):
     monkeypatch.setattr(adminka.db, 'get_store_topics', lambda sid: [])
     monkeypatch.setattr(adminka.db, 'get_db_connection', lambda: (_ for _ in ()).throw(Exception()))
 
+    # --- telethon dashboard dependencies ---
+    monkeypatch.setattr(td.telethon_manager, 'get_stats', lambda sid: {'active': False, 'daemon': '-', 'api': True, 'topics': 0})
+    monkeypatch.setattr(td.db, 'get_daily_campaign_counts', lambda sid: {'current': 0, 'max': 0})
+    monkeypatch.setattr(td.db, 'get_alerts', lambda limit=3: [])
+    monkeypatch.setattr(td.db, 'get_store_topics', lambda sid: [])
+
+    # --- telethon config dependencies ---
+    monkeypatch.setattr(tc.db, 'get_global_telethon_status', lambda: {})
+
+    # --- metrics dashboard dependencies ---
+    monkeypatch.setattr(md.db, 'get_user_role', lambda uid: 'superadmin')
+    monkeypatch.setattr(md.db, 'get_global_metrics', lambda: {'roi': 0, 'telethon_active': 0, 'telethon_total': 0, 'ranking': []})
+    monkeypatch.setattr(md.db, 'get_alerts', lambda: [])
+    monkeypatch.setattr(md.db, 'get_sales_timeseries', lambda: [])
+    monkeypatch.setattr(md.db, 'get_campaign_timeseries', lambda: [])
+    monkeypatch.setattr(md.db, 'log_event', lambda *a, **k: None)
+
     menus = [
         lambda: adminka.show_store_dashboard_unified(1, 1, 'Shop'),
         lambda: adminka.show_marketing_unified(1, 1),
         lambda: adminka.manage_discounts(1, 1),
         lambda: adminka.show_other_settings(1, 1),
+        lambda: td.show_telethon_dashboard(1, 1),
+        lambda: tc.show_global_telethon_config(1, 1),
+        lambda: md.show_global_metrics(1, 1),
     ]
 
     for menu in menus:
         markups.clear()
         nav_system.reset(1)
         menu()
-        markup = markups[-1]
+        markup = next(m for m in reversed(markups) if m is not None)
         texts = [btn.text for row in markup.keyboard for btn in row]
         assert '🏠 Inicio' in texts
         assert '🔄 Actualizar' in texts

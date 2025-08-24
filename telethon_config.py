@@ -5,6 +5,7 @@ import telethon_manager
 import files
 import shelve
 from utils.message_chunker import send_long_message
+from navigation import nav_system
 
 
 def show_global_telethon_config(chat_id, user_id):
@@ -27,20 +28,14 @@ def show_global_telethon_config(chat_id, user_id):
     if len(lines) == 1:
         lines.append("Sin configuración")
 
-    # Use send_long_message to respect the 4096 character limit.
-    send_long_message(bot, chat_id, "\n".join(lines), parse_mode="Markdown")
-
-    # Inline keyboard with available actions
-    markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(
-        telebot.types.InlineKeyboardButton(
-            text="Reiniciar daemons", callback_data="global_restart_daemons"
-        ),
-        telebot.types.InlineKeyboardButton(
-            text="Generar reporte", callback_data="global_generate_report"
-        ),
+    actions = [
+        ("♻️ Reiniciar", "global_restart_daemons"),
+        ("📄 Reporte", "global_generate_report"),
+    ]
+    markup = nav_system.create_universal_navigation(
+        chat_id, "admin_telethon_config", actions
     )
-    send_long_message(bot, chat_id, "Acciones disponibles:", markup=markup)
+    send_long_message(bot, chat_id, "\n".join(lines), markup=markup, parse_mode="Markdown")
 
 
 def global_telethon_config(callback_data, chat_id, user_id=None):
@@ -152,15 +147,13 @@ def telethon_wizard_callback(callback_data, chat_id):
 
 
 def show_telethon_wizard_entry(chat_id, store_id):
-    """Display initial wizard entry buttons."""
-    key = telebot.types.InlineKeyboardMarkup()
-    key.add(
-        telebot.types.InlineKeyboardButton(
-            text="🚀 Iniciar config", callback_data=f"telethon_start_{store_id}"
-        ),
-        telebot.types.InlineKeyboardButton(
-            text="📖 Guía", callback_data="telethon_help"
-        ),
+    """Display initial wizard entry buttons using universal navigation."""
+    actions = [
+        ("🚀 Iniciar config", f"telethon_start_{store_id}"),
+        ("📖 Guía", "telethon_help"),
+    ]
+    markup = nav_system.create_universal_navigation(
+        chat_id, f"telethon_wizard_{store_id}", store_id, actions
     )
-    send_long_message(bot, chat_id, "Configuración de Telethon", markup=key)
+    send_long_message(bot, chat_id, "Configuración de Telethon", markup=markup)
 
